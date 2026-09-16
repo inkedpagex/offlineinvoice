@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-900;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Remove number input spin buttons (up/down arrows) */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
+}
+
+/* Print Specific Optimizations (Compact, Zero Ink Waste, Pure B&W) */
+@media print {
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+
+  *, *::before, *::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 8.5pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.25;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Compact container for paper */
+  .printable-area {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+  }
+
+  /* Half-Page / Compact Slip formatting */
+  .format-A4 {
+    max-width: 175mm !important;
+    margin: 0 auto !important;
+    font-size: 9pt !important;
+  }
+
+  .format-A5 {
+    max-width: 130mm !important;
+    margin: 0 auto !important;
+    font-size: 8pt !important;
+  }
+
+  /* 80mm Continuous Roll formatting */
+  .format-thermal80 {
+    width: 70mm !important;
+    max-width: 70mm !important;
+    font-size: 7pt !important;
+    margin: 0 auto !important;
+  }
+
+  /* Tight, ink-saving table borders */
+  .print-table {
+    border: 1px solid #000000 !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #000000 !important;
+    padding: 1.5px 3px !important;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}

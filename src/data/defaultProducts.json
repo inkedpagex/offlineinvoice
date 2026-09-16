@@ -1,0 +1,782 @@
+[
+  {
+    "id": "prod-1",
+    "name": "D/F CHOCOFILLS (MRP 10)",
+    "baseName": "D/F CHOCOFILLS",
+    "mrp": 10.0,
+    "rate": 8.82,
+    "cfcRate": 1764.0,
+    "pacRate": 8.82,
+    "packaging": "200 PAC ,  10 SET"
+  },
+  {
+    "id": "prod-2",
+    "name": "D/F CHOCOFILLS (MRP 35)",
+    "baseName": "D/F CHOCOFILLS",
+    "mrp": 35.0,
+    "rate": 31.65,
+    "cfcRate": 3798.0,
+    "pacRate": 31.65,
+    "packaging": "120 PAC"
+  },
+  {
+    "id": "prod-3",
+    "name": "D/F CHOCOFILLS (MRP 40)",
+    "baseName": "D/F CHOCOFILLS",
+    "mrp": 40.0,
+    "rate": 32.0,
+    "cfcRate": 3798.0,
+    "pacRate": 32.0,
+    "packaging": "120 PAC"
+  },
+  {
+    "id": "prod-4",
+    "name": "MOMS MAGIC  RED (MRP 5)",
+    "baseName": "MOMS MAGIC  RED",
+    "mrp": 5.0,
+    "rate": 40.72,
+    "cfcRate": 733.0,
+    "pacRate": 40.72,
+    "packaging": "180 PAC"
+  },
+  {
+    "id": "prod-5",
+    "name": "MOMS MAGIC GREEN (MRP 5)",
+    "baseName": "MOMS MAGIC GREEN",
+    "mrp": 5.0,
+    "rate": 40.72,
+    "cfcRate": 733.0,
+    "pacRate": 40.72,
+    "packaging": "180 PAC"
+  },
+  {
+    "id": "prod-6",
+    "name": "MOMS MAGIC RED (MRP 10)",
+    "baseName": "MOMS MAGIC RED",
+    "mrp": 10.0,
+    "rate": 8.61,
+    "cfcRate": 724.0,
+    "pacRate": 8.61,
+    "packaging": "84 PAC"
+  },
+  {
+    "id": "prod-7",
+    "name": "MOMS MAGIC GREEN (MRP 10)",
+    "baseName": "MOMS MAGIC GREEN",
+    "mrp": 10.0,
+    "rate": 8.61,
+    "cfcRate": 724.0,
+    "pacRate": 8.61,
+    "packaging": "84 PAC"
+  },
+  {
+    "id": "prod-8",
+    "name": "MOMS MAGIC 189 GM  RED (MRP 35)",
+    "baseName": "MOMS MAGIC 189 GM  RED",
+    "mrp": 35.0,
+    "rate": 31.95,
+    "cfcRate": 639.0,
+    "pacRate": 31.95,
+    "packaging": "20 PAC"
+  },
+  {
+    "id": "prod-9",
+    "name": "MOMS MAGIC 189 GM  GREEN (MRP 40)",
+    "baseName": "MOMS MAGIC 189 GM  GREEN",
+    "mrp": 40.0,
+    "rate": 36.5,
+    "cfcRate": 730.0,
+    "pacRate": 36.5,
+    "packaging": "20 PAC"
+  },
+  {
+    "id": "prod-10",
+    "name": "MOMS MAGIC 189 GM  BLUE (MRP 50)",
+    "baseName": "MOMS MAGIC 189 GM  BLUE",
+    "mrp": 50.0,
+    "rate": 39.5,
+    "cfcRate": 790.0,
+    "pacRate": 39.5,
+    "packaging": "20 PAC"
+  },
+  {
+    "id": "prod-11",
+    "name": "MOM FEUIT MILK (MRP 44)",
+    "baseName": "MOM FEUIT MILK",
+    "mrp": 44.0,
+    "rate": 39.85,
+    "cfcRate": 797.0,
+    "pacRate": 39.85,
+    "packaging": "20 PAC"
+  },
+  {
+    "id": "prod-12",
+    "name": "BOUNCE CREAM (MRP 4.5)",
+    "baseName": "BOUNCE CREAM",
+    "mrp": 4.5,
+    "rate": 3.93,
+    "cfcRate": 567.0,
+    "pacRate": 3.93,
+    "packaging": "144 PAC"
+  },
+  {
+    "id": "prod-13",
+    "name": "BOUNCE CREAM CHOCO (MRP 4.5)",
+    "baseName": "BOUNCE CREAM CHOCO",
+    "mrp": 4.5,
+    "rate": 3.93,
+    "cfcRate": 567.0,
+    "pacRate": 3.93,
+    "packaging": "144 PAC"
+  },
+  {
+    "id": "prod-14",
+    "name": "GLUCOSE (MRP 5)",
+    "baseName": "GLUCOSE",
+    "mrp": 5.0,
+    "rate": 4.25,
+    "cfcRate": 613.0,
+    "pacRate": 4.25,
+    "packaging": "144 PAC"
+  },
+  {
+    "id": "prod-15",
+    "name": "BOUNCE BOURBON CHOCO (MRP 5)",
+    "baseName": "BOUNCE BOURBON CHOCO",
+    "mrp": 5.0,
+    "rate": 3.93,
+    "cfcRate": 567.0,
+    "pacRate": 3.93,
+    "packaging": "144 PAC"
+  },
+  {
+    "id": "prod-16",
+    "name": "SF WOWZERS CHEESE (MRP 4.5)",
+    "baseName": "SF WOWZERS CHEESE",
+    "mrp": 4.5,
+    "rate": 96.72,
+    "cfcRate": 1741.0,
+    "pacRate": 96.72,
+    "packaging": "18 SET"
+  },
+  {
+    "id": "prod-17",
+    "name": "YIPPY (MRP 5)",
+    "baseName": "YIPPY",
+    "mrp": 5.0,
+    "rate": 4.16,
+    "cfcRate": 1398.0,
+    "pacRate": 4.16,
+    "packaging": "336 PAC"
+  },
+  {
+    "id": "prod-18",
+    "name": "YIPPY (MRP 15)",
+    "baseName": "YIPPY",
+    "mrp": 15.0,
+    "rate": 13.59,
+    "cfcRate": 1305.0,
+    "pacRate": 13.59,
+    "packaging": "96 PAC"
+  },
+  {
+    "id": "prod-19",
+    "name": "YIPPY (MRP 10)",
+    "baseName": "YIPPY",
+    "mrp": 10.0,
+    "rate": 8.95,
+    "cfcRate": 860.0,
+    "pacRate": 8.95,
+    "packaging": "96 PAC"
+  },
+  {
+    "id": "prod-20",
+    "name": "TOFFEECHOO (MRP 164)",
+    "baseName": "TOFFEECHOO",
+    "mrp": 164.0,
+    "rate": 134.16,
+    "cfcRate": 1610.0,
+    "pacRate": 134.16,
+    "packaging": "12  JAR"
+  },
+  {
+    "id": "prod-21",
+    "name": "TOFFEECHOO (MRP 632)",
+    "baseName": "TOFFEECHOO",
+    "mrp": 632.0,
+    "rate": 530.0,
+    "cfcRate": 2120.0,
+    "pacRate": 530.0,
+    "packaging": "4 JAR"
+  },
+  {
+    "id": "prod-22",
+    "name": "FANTASTIK (MRP 200)",
+    "baseName": "FANTASTIK",
+    "mrp": 200.0,
+    "rate": 165.5,
+    "cfcRate": 1986.0,
+    "pacRate": 165.5,
+    "packaging": "12 JAR"
+  },
+  {
+    "id": "prod-23",
+    "name": "CM FRUITEE FUN 875G (MRP 175)",
+    "baseName": "CM FRUITEE FUN 875G",
+    "mrp": 175.0,
+    "rate": 150.0,
+    "cfcRate": 2250.0,
+    "pacRate": 150.0,
+    "packaging": "15 JAR"
+  },
+  {
+    "id": "prod-24",
+    "name": "MINTO GOL (MRP 200)",
+    "baseName": "MINTO GOL",
+    "mrp": 200.0,
+    "rate": 158.0,
+    "cfcRate": 2372.0,
+    "pacRate": 158.0,
+    "packaging": "15 JAR"
+  },
+  {
+    "id": "prod-25",
+    "name": "CHOCOECLAIRS (MRP 289)",
+    "baseName": "CHOCOECLAIRS",
+    "mrp": 289.0,
+    "rate": 212.91,
+    "cfcRate": 2555.0,
+    "pacRate": 212.91,
+    "packaging": "12 JAR"
+  },
+  {
+    "id": "prod-26",
+    "name": "CANDYMAN SOUR JELLY (MRP 5)",
+    "baseName": "CANDYMAN SOUR JELLY",
+    "mrp": 5.0,
+    "rate": 155.25,
+    "cfcRate": 1863.0,
+    "pacRate": 155.25,
+    "packaging": "12 SET"
+  },
+  {
+    "id": "prod-27",
+    "name": "CANDYMAN JELIMALS (MRP 5)",
+    "baseName": "CANDYMAN JELIMALS",
+    "mrp": 5.0,
+    "rate": 155.58,
+    "cfcRate": 1867.0,
+    "pacRate": 155.58,
+    "packaging": "12 SET"
+  },
+  {
+    "id": "prod-28",
+    "name": "CANDYMAN 3IN1 (MRP 200)",
+    "baseName": "CANDYMAN 3IN1",
+    "mrp": 200.0,
+    "rate": 168.0,
+    "cfcRate": 2519.0,
+    "pacRate": 168.0,
+    "packaging": "15 JAR"
+  },
+  {
+    "id": "prod-29",
+    "name": "CANDYMAN TADKA (MRP 187)",
+    "baseName": "CANDYMAN TADKA",
+    "mrp": 187.0,
+    "rate": 156.68,
+    "cfcRate": 2507.0,
+    "pacRate": 156.68,
+    "packaging": "16 JAR"
+  },
+  {
+    "id": "prod-30",
+    "name": "BN  JUCE (MRP 10)",
+    "baseName": "BN  JUCE",
+    "mrp": 10.0,
+    "rate": 7.3,
+    "cfcRate": 146.0,
+    "pacRate": 7.3,
+    "packaging": "20 PAC"
+  },
+  {
+    "id": "prod-31",
+    "name": "TEDHE MEDHE (MRP 5)",
+    "baseName": "TEDHE MEDHE",
+    "mrp": 5.0,
+    "rate": 4.15,
+    "cfcRate": 996.0,
+    "pacRate": 4.15,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-32",
+    "name": "TEDHE MEDHE (MRP 10)",
+    "baseName": "TEDHE MEDHE",
+    "mrp": 10.0,
+    "rate": 8.9,
+    "cfcRate": 1068.0,
+    "pacRate": 8.9,
+    "packaging": "120 PAC"
+  },
+  {
+    "id": "prod-33",
+    "name": "TEDHE MEDHE (MRP 20)",
+    "baseName": "TEDHE MEDHE",
+    "mrp": 20.0,
+    "rate": 17.45,
+    "cfcRate": 838.0,
+    "pacRate": 17.45,
+    "packaging": "48 PAC"
+  },
+  {
+    "id": "prod-34",
+    "name": "PUNJABI TADKA (MRP 5)",
+    "baseName": "PUNJABI TADKA",
+    "mrp": 5.0,
+    "rate": 4.45,
+    "cfcRate": 1069.0,
+    "pacRate": 4.45,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-35",
+    "name": "MAD ANGLES (MRP 5)",
+    "baseName": "MAD ANGLES",
+    "mrp": 5.0,
+    "rate": 4.4,
+    "cfcRate": 1091.0,
+    "pacRate": 4.4,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-36",
+    "name": "MAD ANGLES (MRP 10)",
+    "baseName": "MAD ANGLES",
+    "mrp": 10.0,
+    "rate": 8.42,
+    "cfcRate": 1011.0,
+    "pacRate": 8.42,
+    "packaging": "120 PAC"
+  },
+  {
+    "id": "prod-37",
+    "name": "MAD ANGLES (MRP 20)",
+    "baseName": "MAD ANGLES",
+    "mrp": 20.0,
+    "rate": 16.32,
+    "cfcRate": 914.0,
+    "pacRate": 16.32,
+    "packaging": "56 PAC"
+  },
+  {
+    "id": "prod-38",
+    "name": "BINGO CHIPS (MRP 5)",
+    "baseName": "BINGO CHIPS",
+    "mrp": 5.0,
+    "rate": 4.4,
+    "cfcRate": 1058.0,
+    "pacRate": 4.4,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-39",
+    "name": "BINGO  CHIPS (MRP 20)",
+    "baseName": "BINGO  CHIPS",
+    "mrp": 20.0,
+    "rate": 16.32,
+    "cfcRate": 783.0,
+    "pacRate": 16.32,
+    "packaging": "48 PAC"
+  },
+  {
+    "id": "prod-40",
+    "name": "BINGO  CHIPS BUTTER GARLIC (MRP 5)",
+    "baseName": "BINGO  CHIPS BUTTER GARLIC",
+    "mrp": 5.0,
+    "rate": 4.4,
+    "cfcRate": 1058.0,
+    "pacRate": 4.4,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-41",
+    "name": "BINGO  CHIPS BUTTER GARLIC (MRP 20)",
+    "baseName": "BINGO  CHIPS BUTTER GARLIC",
+    "mrp": 20.0,
+    "rate": 16.31,
+    "cfcRate": 783.0,
+    "pacRate": 16.31,
+    "packaging": "48 PAC"
+  },
+  {
+    "id": "prod-42",
+    "name": "NAMKEEN (MRP 5)",
+    "baseName": "NAMKEEN",
+    "mrp": 5.0,
+    "rate": 4.4,
+    "cfcRate": 1058.0,
+    "pacRate": 4.4,
+    "packaging": "240 PAC"
+  },
+  {
+    "id": "prod-43",
+    "name": "ATTA 10 Kg (MRP 499)",
+    "baseName": "ATTA 10 Kg",
+    "mrp": 499.0,
+    "rate": 470.0,
+    "cfcRate": 1410.0,
+    "pacRate": 470.0,
+    "packaging": "3 PAC"
+  },
+  {
+    "id": "prod-44",
+    "name": "ATTA 5 Kg (MRP 262)",
+    "baseName": "ATTA 5 Kg",
+    "mrp": 262.0,
+    "rate": 229.0,
+    "cfcRate": 1376.0,
+    "pacRate": 229.0,
+    "packaging": "6 PAC"
+  },
+  {
+    "id": "prod-45",
+    "name": "ATTA MLT 5KG (MRP 376)",
+    "baseName": "ATTA MLT 5KG",
+    "mrp": 376.0,
+    "rate": 303.0,
+    "cfcRate": 1818.0,
+    "pacRate": 303.0,
+    "packaging": "6 PAC"
+  },
+  {
+    "id": "prod-46",
+    "name": "SALT 1KG (MRP 30)",
+    "baseName": "SALT 1KG",
+    "mrp": 30.0,
+    "rate": 22.0,
+    "cfcRate": 544.0,
+    "pacRate": 22.0,
+    "packaging": "25 PAC"
+  },
+  {
+    "id": "prod-47",
+    "name": "DHOOP 7 (MRP 8)",
+    "baseName": "DHOOP 7",
+    "mrp": 8.0,
+    "rate": 41.0,
+    "cfcRate": 991.0,
+    "pacRate": 41.0,
+    "packaging": "24   SET"
+  },
+  {
+    "id": "prod-48",
+    "name": "DHOOP 12 (MRP 15)",
+    "baseName": "DHOOP 12",
+    "mrp": 15.0,
+    "rate": 116.0,
+    "cfcRate": 1388.0,
+    "pacRate": 116.0,
+    "packaging": "12   SET"
+  },
+  {
+    "id": "prod-49",
+    "name": "ANUSHIRI (MRP 12)",
+    "baseName": "ANUSHIRI",
+    "mrp": 12.0,
+    "rate": 90.0,
+    "cfcRate": 1080.0,
+    "pacRate": 90.0,
+    "packaging": "12   SET"
+  },
+  {
+    "id": "prod-50",
+    "name": "ZIPPER 12+4 (MRP 30)",
+    "baseName": "ZIPPER 12+4",
+    "mrp": 30.0,
+    "rate": 178.0,
+    "cfcRate": 1775.0,
+    "pacRate": 178.0,
+    "packaging": "10   SET"
+  },
+  {
+    "id": "prod-51",
+    "name": "DHOOP 3 in 1 (MRP 25)",
+    "baseName": "DHOOP 3 in 1",
+    "mrp": 25.0,
+    "rate": 156.0,
+    "cfcRate": 2809.0,
+    "pacRate": 156.0,
+    "packaging": "18 SET"
+  },
+  {
+    "id": "prod-52",
+    "name": "DHOOP SCENT 3 in 1 (MRP 60)",
+    "baseName": "DHOOP SCENT 3 in 1",
+    "mrp": 60.0,
+    "rate": 184.0,
+    "cfcRate": 1842.0,
+    "pacRate": 184.0,
+    "packaging": "10 SET"
+  },
+  {
+    "id": "prod-53",
+    "name": "DHOOP SANDAL STICK 4IN1 (MRP 80)",
+    "baseName": "DHOOP SANDAL STICK 4IN1",
+    "mrp": 80.0,
+    "rate": 39.0,
+    "cfcRate": 2815.0,
+    "pacRate": 39.0,
+    "packaging": "72 JAR"
+  },
+  {
+    "id": "prod-54",
+    "name": "DHOOP SANDAL STICK (MRP 80)",
+    "baseName": "DHOOP SANDAL STICK",
+    "mrp": 80.0,
+    "rate": 37.0,
+    "cfcRate": 2710.0,
+    "pacRate": 37.0,
+    "packaging": "72 JAR"
+  },
+  {
+    "id": "prod-55",
+    "name": "HOMELITE (MRP 2)",
+    "baseName": "HOMELITE",
+    "mrp": 2.0,
+    "rate": 8.0,
+    "cfcRate": 452.0,
+    "pacRate": 8.0,
+    "packaging": "60   PAS"
+  },
+  {
+    "id": "prod-56",
+    "name": "HOMELITE (MRP 10)",
+    "baseName": "HOMELITE",
+    "mrp": 10.0,
+    "rate": 8.0,
+    "cfcRate": 701.0,
+    "pacRate": 8.0,
+    "packaging": "100 PAS"
+  },
+  {
+    "id": "prod-57",
+    "name": "SAVLON 40*4 (MRP 40)",
+    "baseName": "SAVLON 40*4",
+    "mrp": 40.0,
+    "rate": 34.0,
+    "cfcRate": 1822.0,
+    "pacRate": 34.0,
+    "packaging": "54 SET"
+  },
+  {
+    "id": "prod-58",
+    "name": "SAVLON 75*4 (MRP 111)",
+    "baseName": "SAVLON 75*4",
+    "mrp": 111.0,
+    "rate": 84.0,
+    "cfcRate": 2010.0,
+    "pacRate": 84.0,
+    "packaging": "24    SET"
+  },
+  {
+    "id": "prod-59",
+    "name": "SAVLON 120*4 (MRP 186)",
+    "baseName": "SAVLON 120*4",
+    "mrp": 186.0,
+    "rate": 140.0,
+    "cfcRate": 2525.0,
+    "pacRate": 140.0,
+    "packaging": "18    SET"
+  },
+  {
+    "id": "prod-60",
+    "name": "SAVLON 75*4 (MRP 96)",
+    "baseName": "SAVLON 75*4",
+    "mrp": 96.0,
+    "rate": 81.0,
+    "cfcRate": 1954.0,
+    "pacRate": 81.0,
+    "packaging": "24    SET"
+  },
+  {
+    "id": "prod-61",
+    "name": "SUPERIA SILK (MRP 95)",
+    "baseName": "SUPERIA SILK",
+    "mrp": 95.0,
+    "rate": 75.0,
+    "cfcRate": 1793.0,
+    "pacRate": 75.0,
+    "packaging": "24    SET"
+  },
+  {
+    "id": "prod-62",
+    "name": "VIVEL LIME +ALOE VERA 90*5 (MRP 105)",
+    "baseName": "VIVEL LIME +ALOE VERA 90*5",
+    "mrp": 105.0,
+    "rate": 92.0,
+    "cfcRate": 3308.0,
+    "pacRate": 92.0,
+    "packaging": "36 SET"
+  },
+  {
+    "id": "prod-63",
+    "name": "VIVEL 100*5  SANDAL (MRP 140)",
+    "baseName": "VIVEL 100*5  SANDAL",
+    "mrp": 140.0,
+    "rate": 109.0,
+    "cfcRate": 3910.0,
+    "pacRate": 109.0,
+    "packaging": "36 SET"
+  },
+  {
+    "id": "prod-64",
+    "name": "VIVEL ALOVERA 90*5 (MRP 115)",
+    "baseName": "VIVEL ALOVERA 90*5",
+    "mrp": 115.0,
+    "rate": 101.0,
+    "cfcRate": 3623.0,
+    "pacRate": 101.0,
+    "packaging": "36 SET"
+  },
+  {
+    "id": "prod-65",
+    "name": "VIVEL SANDAL 42*4 (MRP 40)",
+    "baseName": "VIVEL SANDAL 42*4",
+    "mrp": 40.0,
+    "rate": 31.0,
+    "cfcRate": 1665.0,
+    "pacRate": 31.0,
+    "packaging": "54 SET"
+  },
+  {
+    "id": "prod-66",
+    "name": "FIAMA 125*4 (MRP 275)",
+    "baseName": "FIAMA 125*4",
+    "mrp": 275.0,
+    "rate": 214.0,
+    "cfcRate": 1928.0,
+    "pacRate": 214.0,
+    "packaging": "9   SET"
+  },
+  {
+    "id": "prod-67",
+    "name": "FIAMA 125*3 (MRP 265)",
+    "baseName": "FIAMA 125*3",
+    "mrp": 265.0,
+    "rate": 207.0,
+    "cfcRate": 2478.0,
+    "pacRate": 207.0,
+    "packaging": "12 SET"
+  },
+  {
+    "id": "prod-68",
+    "name": "FIAMA 75*4 (MRP 155)",
+    "baseName": "FIAMA 75*4",
+    "mrp": 155.0,
+    "rate": 116.0,
+    "cfcRate": 1043.0,
+    "pacRate": 116.0,
+    "packaging": "9 SET"
+  },
+  {
+    "id": "prod-69",
+    "name": "FIAMA 125*3 (MRP 186)",
+    "baseName": "FIAMA 125*3",
+    "mrp": 186.0,
+    "rate": 135.0,
+    "cfcRate": 1624.0,
+    "pacRate": 135.0,
+    "packaging": "12 SET"
+  },
+  {
+    "id": "prod-70",
+    "name": "FIAMA 125*5 (MRP 329)",
+    "baseName": "FIAMA 125*5",
+    "mrp": 329.0,
+    "rate": 214.0,
+    "cfcRate": 1927.0,
+    "pacRate": 214.0,
+    "packaging": "9 SET"
+  },
+  {
+    "id": "prod-71",
+    "name": "SAVLON Lqd 50 ML (MRP 31)",
+    "baseName": "SAVLON Lqd 50 ML",
+    "mrp": 31.0,
+    "rate": 23.0,
+    "cfcRate": 3265.0,
+    "pacRate": 23.0,
+    "packaging": "144    PAS"
+  },
+  {
+    "id": "prod-72",
+    "name": "SAVLON Lqd 100 ML (MRP 62)",
+    "baseName": "SAVLON Lqd 100 ML",
+    "mrp": 62.0,
+    "rate": 45.0,
+    "cfcRate": 3265.0,
+    "pacRate": 45.0,
+    "packaging": "72   PAS"
+  },
+  {
+    "id": "prod-73",
+    "name": "SAVLON Lqd 200 ML (MRP 111)",
+    "baseName": "SAVLON Lqd 200 ML",
+    "mrp": 111.0,
+    "rate": 84.0,
+    "cfcRate": 2013.0,
+    "pacRate": 84.0,
+    "packaging": "24   PAS"
+  },
+  {
+    "id": "prod-74",
+    "name": "SAVLON Lqd 1000 ML (MRP 374)",
+    "baseName": "SAVLON Lqd 1000 ML",
+    "mrp": 374.0,
+    "rate": 292.0,
+    "cfcRate": 3501.0,
+    "pacRate": 292.0,
+    "packaging": "12   PAS"
+  },
+  {
+    "id": "prod-75",
+    "name": "SAVLON HW  200 ML+175ML COMBO (MRP 99)",
+    "baseName": "SAVLON HW  200 ML+175ML COMBO",
+    "mrp": 99.0,
+    "rate": 101.0,
+    "cfcRate": 2021.0,
+    "pacRate": 101.0,
+    "packaging": "20 PAS"
+  },
+  {
+    "id": "prod-76",
+    "name": "SAVLON HW 650 ML (MRP 99)",
+    "baseName": "SAVLON HW 650 ML",
+    "mrp": 99.0,
+    "rate": 82.0,
+    "cfcRate": 1649.0,
+    "pacRate": 82.0,
+    "packaging": "20   PAS"
+  },
+  {
+    "id": "prod-77",
+    "name": "SAVLON HW  650+650 ML (MRP 198)",
+    "baseName": "SAVLON HW  650+650 ML",
+    "mrp": 198.0,
+    "rate": 165.0,
+    "cfcRate": 1649.0,
+    "pacRate": 165.0,
+    "packaging": "10   PAS"
+  },
+  {
+    "id": "prod-78",
+    "name": "SAVLON HW OFFER 175*2 (MRP 70)",
+    "baseName": "SAVLON HW OFFER 175*2",
+    "mrp": 70.0,
+    "rate": 60.0,
+    "cfcRate": 1429.0,
+    "pacRate": 60.0,
+    "packaging": "24 PAC"
+  }
+]

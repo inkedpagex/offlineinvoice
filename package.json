@@ -1,0 +1,61 @@
+{
+  "name": "offline-estimate-printer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline Estimate Bill Printer Desktop Application",
+  "author": "Aditya Trading Company",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --open",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "vite",
+    "electron:start": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.1",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.invoicepro.estimatebillprinter",
+    "productName": "InvoicePro",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "dist-release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "InvoicePro",
+      "uninstallDisplayName": "InvoicePro - Estimate Bill Printer",
+      "deleteAppDataOnUninstall": true
+    }
+  }
+}
