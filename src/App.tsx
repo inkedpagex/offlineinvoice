@@ -3,20 +3,23 @@ import {
   Printer,
   Plus,
   Trash2,
-  RotateCcw,
   Settings,
-  FileText,
   Package,
-  Layers,
-  Receipt,
   Search,
   Clock,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { ShopProfile, ActiveEstimate, EstimateItem, Product, SavedEstimate } from './types';
 import { ShopSettingsModal } from './components/ShopSettingsModal';
 import { ProductManagementModal } from './components/ProductManagementModal';
 import { EstimateHistoryModal } from './components/EstimateHistoryModal';
+import { PrintPreviewModal } from './components/PrintPreviewModal';
+import { PaymentQRCode } from './components/PaymentQRCode';
 import { numberToWords } from './utils/numberToWords';
+import { parsePackaging, calculateQtyFromCfc, calculateCfcFromQty, formatQtyWithUnit } from './utils/cfcHelper';
 import defaultProducts from './data/defaultProducts.json';
 
 declare global {
@@ -37,7 +40,7 @@ const DEFAULT_SHOP_PROFILE: ShopProfile = {
   address: 'Main Market Road, City',
   phone: '9876543210',
   estimateTitle: 'ESTIMATE BILL',
-  defaultTerms: 'This is an estimate memo, not a tax invoice.',
+  defaultTerms: 'नोट: बिका हुआ माल वापस नहीं होगा। भूल-चूक लेनी-देनी। आपके व्यापार के लिए धन्यवाद!',
   paperFormat: 'A4',
   currencySymbol: '₹',
 };
@@ -80,7 +83,11 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem('shop_profile');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (!parsed.defaultTerms || parsed.defaultTerms.includes('Goods once sold') || parsed.defaultTerms.trim() === '') {
+          parsed.defaultTerms = DEFAULT_SHOP_PROFILE.defaultTerms;
+        }
+        return parsed;
       } catch (e) {
         console.error('Failed to parse shop profile', e);
       }
@@ -120,6 +127,7 @@ export const App: React.FC = () => {
   });
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Active Estimate State (Restores whatever was typed so customer name & items are never lost)
   const [estimate, setEstimate] = useState<ActiveEstimate>(() => {
@@ -138,15 +146,21 @@ export const App: React.FC = () => {
       estimateNumber: getInitialEstimateNumber(),
       date: new Date().toISOString().split('T')[0],
       customerName: '',
+      customerAddress: '',
       customerContact: '',
-      items: [{ id: '1', description: '', qty: 1, rate: '', amount: 0 }],
+      dpName: '',
+      items: [{ id: '1', description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
       discount: '',
       notes: DEFAULT_SHOP_PROFILE.defaultTerms,
     };
   });
 
-  // Reference to focus new item descriptions
+  // References to focus elements for seamless keyboard navigation
   const itemInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const itemCfcRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const itemQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const itemRateRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
 
   // Hydrate from permanent electron disk database on startup
   useEffect(() => {
@@ -228,7 +242,9 @@ export const App: React.FC = () => {
       estimateNumber: estimate.estimateNumber,
       date: estimate.date,
       customerName: estimate.customerName,
+      customerAddress: estimate.customerAddress || '',
       customerContact: estimate.customerContact,
+      dpName: estimate.dpName || '',
       items: estimate.items,
       subtotal: subtotal,
       discount: discountVal,
@@ -252,7 +268,7 @@ export const App: React.FC = () => {
     });
   };
 
-  // Handlers for Items
+  // Handlers for Items (Clean string handling with smart CFC <-> Qty conversion & DP)
   const handleItemChange = (
     id: string,
     field: keyof Omit<EstimateItem, 'id' | 'amount'>,
@@ -262,29 +278,55 @@ export const App: React.FC = () => {
       const updatedItems = prev.items.map((item) => {
         if (item.id !== id) return item;
 
-        let newQty = item.qty;
-        let newRate = item.rate;
+        let newCfc: number | string = item.cfc || '';
+        let newQty: number | string = item.qty;
+        let newRate: number | string = item.rate;
         let newDesc = item.description;
+        let newDp = item.dp || '';
+        let newUnit = item.unit;
+        const caseCount = item.caseCount;
 
         if (field === 'description') {
           newDesc = value;
           setActiveDropdownRowId(id);
+          setSelectedSuggestionIndex(0);
+        } else if (field === 'dp') {
+          newDp = value;
+        } else if (field === 'cfc') {
+          newCfc = value;
+          // Auto-calculate Qty from CFC if product has caseCount
+          if (caseCount && caseCount > 0) {
+            const calculatedQty = calculateQtyFromCfc(value, caseCount);
+            if (calculatedQty !== '') {
+              newQty = calculatedQty;
+            }
+          }
         } else if (field === 'qty') {
-          newQty = value === '' ? '' : parseFloat(value) || 0;
+          newQty = value;
+          // Auto-calculate CFC from Qty if product has caseCount
+          if (caseCount && caseCount > 0) {
+            const { cfc } = calculateCfcFromQty(value, caseCount);
+            newCfc = cfc;
+          }
         } else if (field === 'rate') {
-          newRate = value === '' ? '' : parseFloat(value) || 0;
+          newRate = value;
+        } else if (field === 'unit') {
+          newUnit = value;
         }
 
-        const numericQty = typeof newQty === 'number' ? newQty : 0;
-        const numericRate = typeof newRate === 'number' ? newRate : 0;
+        const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(newQty) || 0);
+        const numericRate = typeof newRate === 'number' ? newRate : (parseFloat(newRate) || 0);
         const calculatedAmount = Math.round(numericQty * numericRate * 100) / 100;
 
         return {
           ...item,
           description: newDesc,
+          dp: newDp,
+          cfc: newCfc,
           qty: newQty,
           rate: newRate,
           amount: calculatedAmount,
+          unit: newUnit,
         };
       });
 
@@ -292,24 +334,58 @@ export const App: React.FC = () => {
     });
   };
 
-  // Select item from autocomplete suggestions
+  // Select item from autocomplete suggestions and attach packaging / conversion factor
   const handleSelectProduct = (itemId: string, product: Product) => {
+    const parsed = parsePackaging(product.packaging);
+    const itemUnit = product.unit || parsed.unit || 'PAC';
+    const itemCaseCount = product.caseCount !== undefined ? product.caseCount : parsed.caseCount;
+
     setEstimate((prev) => {
       const updatedItems = prev.items.map((item) => {
         if (item.id !== itemId) return item;
-        const currentQty = typeof item.qty === 'number' && item.qty > 0 ? item.qty : 1;
-        const calcAmount = Math.round(currentQty * product.rate * 100) / 100;
+
+        let initialCfc: number | string = item.cfc || '';
+        let initialQty: number | string = item.qty;
+
+        // If user already typed CFC e.g. 2
+        if (initialCfc !== '' && itemCaseCount && itemCaseCount > 0) {
+          initialQty = calculateQtyFromCfc(initialCfc, itemCaseCount);
+        } else if (itemCaseCount && itemCaseCount > 0 && (!initialQty || Number(initialQty) <= 1)) {
+          // Default 1 Gatta = itemCaseCount PAC
+          initialCfc = 1;
+          initialQty = itemCaseCount;
+        }
+
+        const numericQty = typeof initialQty === 'number' ? initialQty : (parseFloat(String(initialQty)) || 1);
+        const calcAmount = Math.round(numericQty * product.rate * 100) / 100;
+
         return {
           ...item,
           description: product.name,
+          dp: item.dp || '',
           rate: product.rate,
-          qty: currentQty,
+          unit: itemUnit,
+          caseCount: itemCaseCount,
+          cfc: initialCfc,
+          qty: initialQty,
           amount: calcAmount,
         };
       });
       return { ...prev, items: updatedItems };
     });
     setActiveDropdownRowId(null);
+    setSelectedSuggestionIndex(-1);
+
+    // Auto-focus CFC or Qty after picking product
+    setTimeout(() => {
+      if (itemCfcRefs.current[itemId]) {
+        itemCfcRefs.current[itemId]?.focus();
+        itemCfcRefs.current[itemId]?.select();
+      } else if (itemQtyRefs.current[itemId]) {
+        itemQtyRefs.current[itemId]?.focus();
+        itemQtyRefs.current[itemId]?.select();
+      }
+    }, 50);
   };
 
   const handleAddItem = () => {
@@ -318,7 +394,7 @@ export const App: React.FC = () => {
       ...prev,
       items: [
         ...prev.items,
-        { id: newId, description: '', qty: 1, rate: '', amount: 0 },
+        { id: newId, description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0, unit: 'PAC' },
       ],
     }));
 
@@ -334,7 +410,7 @@ export const App: React.FC = () => {
     if (estimate.items.length === 1) {
       setEstimate((prev) => ({
         ...prev,
-        items: [{ id: '1', description: '', qty: 1, rate: '', amount: 0 }],
+        items: [{ id: '1', description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
       }));
       return;
     }
@@ -344,13 +420,175 @@ export const App: React.FC = () => {
     }));
   };
 
-  // Keyboard shortcut: Press Enter on Rate to add next row
+  // Keyboard shortcut: Press Enter on Rate to add next row or jump to next row
   const handleRateKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (index === estimate.items.length - 1) {
         handleAddItem();
+      } else {
+        const nextId = estimate.items[index + 1]?.id;
+        if (nextId && itemInputRefs.current[nextId]) {
+          itemInputRefs.current[nextId]?.focus();
+        }
       }
+    }
+  };
+
+  // Helper to extract numeric value from estimate number (e.g. 'EST-102' -> 102)
+  const getEstNumberVal = (estNum: string): number => {
+    const match = estNum?.match(/\d+$/);
+    return match ? parseInt(match[0], 10) : 0;
+  };
+
+  const currentNum = getEstNumberVal(estimate.estimateNumber);
+
+  // Sorted history by estimate number ascending
+  const sortedHistory = [...history].sort(
+    (a, b) => getEstNumberVal(a.estimateNumber) - getEstNumberVal(b.estimateNumber)
+  );
+
+  const hasPrevBill = sortedHistory.some(
+    (h) => getEstNumberVal(h.estimateNumber) < currentNum
+  ) || (history.length > 0 && !history.some((h) => h.estimateNumber === estimate.estimateNumber));
+
+  // Navigate to Previous Bill in History (Saves current draft & loads previous bill)
+  const handlePrevBill = () => {
+    const hasContent =
+      estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0)) ||
+      estimate.customerName.trim() !== '';
+
+    let currentHistory = history;
+    if (hasContent) {
+      saveCurrentEstimateToHistory();
+      const existingIdx = history.findIndex((e) => e.estimateNumber === estimate.estimateNumber);
+      const newSaved: SavedEstimate = {
+        id: `est-${Date.now()}`,
+        estimateNumber: estimate.estimateNumber,
+        date: estimate.date,
+        customerName: estimate.customerName,
+        customerAddress: estimate.customerAddress || '',
+        customerContact: estimate.customerContact,
+        items: estimate.items,
+        subtotal: subtotal,
+        discount: discountVal,
+        grandTotal: grandTotal,
+        notes: estimate.notes,
+        createdAt: new Date().toISOString(),
+      };
+      if (existingIdx >= 0) {
+        currentHistory = [...history];
+        currentHistory[existingIdx] = newSaved;
+      } else {
+        currentHistory = [newSaved, ...history];
+      }
+    }
+
+    const curNum = getEstNumberVal(estimate.estimateNumber);
+    const sorted = [...currentHistory].sort(
+      (a, b) => getEstNumberVal(a.estimateNumber) - getEstNumberVal(b.estimateNumber)
+    );
+
+    // Find the immediately preceding bill (largest number < curNum)
+    const earlierBills = sorted.filter((h) => getEstNumberVal(h.estimateNumber) < curNum);
+    if (earlierBills.length > 0) {
+      const prevEst = earlierBills[earlierBills.length - 1];
+      setEstimate({
+        estimateNumber: prevEst.estimateNumber,
+        date: prevEst.date,
+        customerName: prevEst.customerName || '',
+        customerAddress: prevEst.customerAddress || '',
+        customerContact: prevEst.customerContact || '',
+        dpName: prevEst.dpName || '',
+        items: prevEst.items && prevEst.items.length > 0 ? prevEst.items : [{ id: '1', description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
+        discount: prevEst.discount || '',
+        notes: prevEst.notes || shopProfile.defaultTerms,
+      });
+    } else if (sorted.length > 0) {
+      // Load earliest available bill
+      const fallbackEst = sorted[0];
+      setEstimate({
+        estimateNumber: fallbackEst.estimateNumber,
+        date: fallbackEst.date,
+        customerName: fallbackEst.customerName || '',
+        customerAddress: fallbackEst.customerAddress || '',
+        customerContact: fallbackEst.customerContact || '',
+        dpName: fallbackEst.dpName || '',
+        items: fallbackEst.items && fallbackEst.items.length > 0 ? fallbackEst.items : [{ id: '1', description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
+        discount: fallbackEst.discount || '',
+        notes: fallbackEst.notes || shopProfile.defaultTerms,
+      });
+    }
+  };
+
+  // Dedicated "Next Bill" Action (Saves current estimate, navigates forward in history, or starts next sequential number)
+  const handleNextBill = () => {
+    const hasContent =
+      estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0)) ||
+      estimate.customerName.trim() !== '';
+
+    let currentHistory = history;
+    if (hasContent) {
+      saveCurrentEstimateToHistory();
+      const existingIdx = history.findIndex((e) => e.estimateNumber === estimate.estimateNumber);
+      const newSaved: SavedEstimate = {
+        id: `est-${Date.now()}`,
+        estimateNumber: estimate.estimateNumber,
+        date: estimate.date,
+        customerName: estimate.customerName,
+        customerAddress: estimate.customerAddress || '',
+        customerContact: estimate.customerContact,
+        dpName: estimate.dpName || '',
+        items: estimate.items,
+        subtotal: subtotal,
+        discount: discountVal,
+        grandTotal: grandTotal,
+        notes: estimate.notes,
+        createdAt: new Date().toISOString(),
+      };
+      if (existingIdx >= 0) {
+        currentHistory = [...history];
+        currentHistory[existingIdx] = newSaved;
+      } else {
+        currentHistory = [newSaved, ...history];
+      }
+    }
+
+    const curNum = getEstNumberVal(estimate.estimateNumber);
+    const sorted = [...currentHistory].sort(
+      (a, b) => getEstNumberVal(a.estimateNumber) - getEstNumberVal(b.estimateNumber)
+    );
+
+    // Look for a subsequent saved bill in history (smallest number > curNum)
+    const subsequentBills = sorted.filter((h) => getEstNumberVal(h.estimateNumber) > curNum);
+    if (subsequentBills.length > 0) {
+      const nextEst = subsequentBills[0];
+      setEstimate({
+        estimateNumber: nextEst.estimateNumber,
+        date: nextEst.date,
+        customerName: nextEst.customerName || '',
+        customerAddress: nextEst.customerAddress || '',
+        customerContact: nextEst.customerContact || '',
+        dpName: nextEst.dpName || '',
+        items: nextEst.items && nextEst.items.length > 0 ? nextEst.items : [{ id: '1', description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
+        discount: nextEst.discount || '',
+        notes: nextEst.notes || shopProfile.defaultTerms,
+      });
+    } else {
+      // Create new next sequential bill
+      const maxHistoryNum = sorted.reduce((max, h) => Math.max(max, getEstNumberVal(h.estimateNumber)), 100);
+      const nextNum = Math.max(curNum, maxHistoryNum) + 1;
+      setEstimate({
+        estimateNumber: `EST-${nextNum}`,
+        date: new Date().toISOString().split('T')[0],
+        customerName: '',
+        customerAddress: '',
+        customerContact: '',
+        dpName: '',
+        items: [{ id: Date.now().toString(), description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
+        discount: '',
+        notes: shopProfile.defaultTerms,
+      });
     }
   };
 
@@ -363,15 +601,11 @@ export const App: React.FC = () => {
     let nextEstNumber = 'EST-101';
 
     if (hasContent) {
-      // Save current estimate to history before starting new one
       saveCurrentEstimateToHistory();
-
-      // Current bill had content, so increment to next number
       const match = estimate.estimateNumber.match(/\d+$/);
       const currentCounter = match ? parseInt(match[0], 10) : 100;
       nextEstNumber = `EST-${currentCounter + 1}`;
     } else {
-      // If current bill is empty, do NOT skip/jump numbers! Calculate from existing history
       nextEstNumber = getNextEstimateNumber(history);
     }
 
@@ -379,24 +613,50 @@ export const App: React.FC = () => {
       estimateNumber: nextEstNumber,
       date: new Date().toISOString().split('T')[0],
       customerName: '',
+      customerAddress: '',
       customerContact: '',
-      items: [{ id: Date.now().toString(), description: '', qty: 1, rate: '', amount: 0 }],
+      dpName: '',
+      items: [{ id: Date.now().toString(), description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
       discount: '',
       notes: shopProfile.defaultTerms,
     });
   };
 
-  // Print Action
+  // Print Action (Saves current bill & automatically advances to next bill)
   const handlePrint = () => {
     setActiveDropdownRowId(null);
-    // Auto-save to local history database
-    saveCurrentEstimateToHistory();
+    const hasContent =
+      estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0)) ||
+      estimate.customerName.trim() !== '';
 
-    const match = estimate.estimateNumber.match(/\d+$/);
-    if (match) {
-      localStorage.setItem('last_estimate_number', match[0]);
+    // 1. Auto-save current estimate to local history database if it has items/customer
+    if (hasContent) {
+      saveCurrentEstimateToHistory();
     }
+
+    // 2. Open print dialog
     window.print();
+
+    // 3. Immediately advance to next sequential bill for fast counter workflow!
+    if (hasContent) {
+      const match = estimate.estimateNumber.match(/\d+$/);
+      const currentCounter = match ? parseInt(match[0], 10) : 100;
+      const nextCounter = currentCounter + 1;
+
+      setTimeout(() => {
+        setEstimate({
+          estimateNumber: `EST-${nextCounter}`,
+          date: new Date().toISOString().split('T')[0],
+          customerName: '',
+          customerAddress: '',
+          customerContact: '',
+          dpName: '',
+          items: [{ id: Date.now().toString(), description: '', dp: '', cfc: '', qty: 1, rate: '', amount: 0 }],
+          discount: '',
+          notes: shopProfile.defaultTerms,
+        });
+      }, 500);
+    }
   };
 
   // Load a past estimate from history
@@ -405,7 +665,9 @@ export const App: React.FC = () => {
       estimateNumber: past.estimateNumber,
       date: past.date,
       customerName: past.customerName,
+      customerAddress: past.customerAddress || '',
       customerContact: past.customerContact,
+      dpName: past.dpName || '',
       items: past.items,
       discount: past.discount,
       notes: past.notes,
@@ -490,20 +752,210 @@ export const App: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Global Keyboard Shortcuts (Ctrl+P to print, Ctrl+N for new)
+  // Global Keyboard Shortcuts (Ctrl+P to print, Ctrl+N for new, Alt+Left for prev, Alt+Right for next)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If any modal is active, do not hijack typing or shortcut actions
+      if (isProductsOpen || isSettingsOpen || isHistoryOpen || isPreviewOpen) {
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         handlePrint();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewEstimate();
+      } else if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevBill();
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextBill();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [estimate]);
+  }, [estimate, history, isProductsOpen, isSettingsOpen, isHistoryOpen, isPreviewOpen]);
+
+  // Reusable Single Copy for 2-in-1 Print Rendering (Clean Simple Lining, Zero Page Waste)
+  const renderPrintCopy = (copyType: 'ORIGINAL' | 'DUPLICATE') => (
+    <div className="copy-half-sheet bg-white text-black p-2.5 text-[10.5px] leading-tight flex flex-col justify-between border-2 border-black">
+      {/* Top Part: Header + Customer Details */}
+      <div>
+        {/* Top Copy Tag: Original / Duplicate Marker (No overlap with QR) */}
+        {copyType && (
+          <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1 text-black">
+            <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
+            <span className="font-mono text-[8px] text-black">ESTIMATE</span>
+          </div>
+        )}
+
+        {/* Header (Left Logo | Center Shop Details | Right Payment QR) */}
+        <div className="border-b-2 border-black pb-1 mb-1.5">
+          <div className="grid grid-cols-12 items-center gap-1.5">
+            {/* Left: Shop Logo (Bigger & closer to shop name) */}
+            <div className="col-span-3 flex justify-end items-center pr-2">
+              {shopProfile.logoUrl ? (
+                <img
+                  src={shopProfile.logoUrl}
+                  alt="Logo"
+                  className="max-h-14 max-w-[125px] object-contain"
+                />
+              ) : (
+                <div className="w-6 h-6" />
+              )}
+            </div>
+
+            {/* Center: Shop Info */}
+            <div className="col-span-6 text-center">
+              <h1 className="text-base font-black uppercase tracking-tight text-black leading-tight">
+                {shopProfile.name}
+              </h1>
+              {shopProfile.tagline && (
+                <p className="text-[9px] font-bold text-black mt-0.5">{shopProfile.tagline}</p>
+              )}
+              <p className="text-[8.5px] text-black mt-0.5">
+                {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
+              </p>
+              <div className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-black">
+                — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
+              </div>
+            </div>
+
+            {/* Right: Payment QR Code (Closer to shop info) */}
+            <div className="col-span-3 flex flex-col justify-center items-start pl-2">
+              {(shopProfile.upiId || shopProfile.qrCodeUrl) ? (
+                <div className="flex flex-col items-center">
+                  <PaymentQRCode
+                    upiId={shopProfile.upiId}
+                    shopName={shopProfile.name}
+                    grandTotal={grandTotal}
+                    customQrUrl={shopProfile.qrCodeUrl}
+                    size={46}
+                  />
+                  <span className="text-[7px] font-bold uppercase text-black">Scan & Pay</span>
+                </div>
+              ) : (
+                <div className="w-6 h-6" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Customer & Bill Meta (Clean Straight Lining with DP under Date) */}
+        <div className="grid grid-cols-12 gap-1.5 border-y border-black py-1 mb-1.5 text-[10px]">
+          <div className="col-span-7 space-y-0.5">
+            <div className="flex items-baseline gap-1">
+              <span className="font-extrabold text-black uppercase text-[9px] min-w-[50px]">M/s / To:</span>
+              <span className="font-black text-black text-xs truncate">
+                {estimate.customerName || '—'}
+              </span>
+            </div>
+            {estimate.customerAddress && (
+              <div className="flex items-baseline gap-1">
+                <span className="font-bold text-black text-[9px] min-w-[50px]">Address:</span>
+                <span className="text-black text-[10px] truncate">{estimate.customerAddress}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Est No, Date & DP (Directly under Date) */}
+          <div className="col-span-5 flex flex-col justify-center items-end space-y-0.5 text-right border-l border-black pl-1.5">
+            <div className="flex items-center gap-1 text-[10px]">
+              <span className="font-bold text-black text-[9px]">Est No:</span>
+              <span className="font-black text-black text-[11px] font-mono">{estimate.estimateNumber}</span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px]">
+              <span className="font-bold text-black text-[9px]">Date:</span>
+              <span className="font-bold text-black text-[10px]">{estimate.date}</span>
+            </div>
+            <div className="flex items-center gap-1 text-[9px]">
+              <span className="font-bold text-black text-[8.5px]">DP:</span>
+              <span className="text-black text-[9.5px] font-semibold min-w-[50px] inline-block border-b border-black text-left pl-1">
+                {estimate.dpName || '\u00A0'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Table (Includes CFC Column + Padding Rows to prevent page waste) */}
+        <table className="w-full border-collapse border border-black mb-1.5 text-[10px]">
+          <thead>
+            <tr className="border-b border-black bg-white font-black uppercase text-center text-[9px]">
+              <th className="border border-black py-0.5 px-1 w-6">#</th>
+              <th className="border border-black py-0.5 px-1.5 text-left">Item Description</th>
+              <th className="border border-black py-0.5 px-1 w-12 text-center">CFC</th>
+              <th className="border border-black py-0.5 px-1 w-12 text-right">Qty</th>
+              <th className="border border-black py-0.5 px-1 w-14 text-right">Rate</th>
+              <th className="border border-black py-0.5 px-1.5 w-16 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {estimate.items.map((item, index) => (
+              <tr key={item.id} className="border-b border-black">
+                <td className="border border-black py-0.5 px-1 text-center font-bold text-[9px]">{index + 1}</td>
+                <td className="border border-black py-0.5 px-1.5 font-bold text-[10px]">
+                  {item.description || '—'}
+                  {item.caseCount && item.caseCount > 0 && (
+                    <span className="text-[8px] text-black font-normal ml-1">
+                      (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
+                    </span>
+                  )}
+                </td>
+                <td className="border border-black py-0.5 px-1 text-center font-semibold text-[9px] text-black">
+                  {item.cfc ? `${item.cfc}` : '—'}
+                </td>
+                <td className="border border-black py-0.5 px-1 text-right font-bold text-[10px]">
+                  {formatQtyWithUnit(item.qty, item.unit)}
+                </td>
+                <td className="border border-black py-0.5 px-1 text-right font-bold text-[10px]">
+                  {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
+                </td>
+                <td className="border border-black py-0.5 px-1.5 text-right font-black text-[10px]">
+                  {shopProfile.currencySymbol}{item.amount.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Bottom Part: Totals & Hindi Notice */}
+      <div className="grid grid-cols-12 gap-1.5 border-t border-black pt-1 text-[10px]">
+        <div className="col-span-7 flex flex-col justify-between">
+          <div>
+            <p className="font-black uppercase text-[8px] text-black">Terms / Notice:</p>
+            <p className="text-[9px] text-black font-semibold leading-tight mt-0.5">
+              {estimate.notes || shopProfile.defaultTerms}
+            </p>
+          </div>
+
+          {grandTotal > 0 && (
+            <div className="mt-1 text-[9px] font-bold leading-tight">
+              <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="col-span-5 space-y-0.5">
+          <div className="flex justify-between py-0.2 border-b border-black font-bold text-[10px]">
+            <span>Subtotal:</span>
+            <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
+          </div>
+          {discountVal > 0 && (
+            <div className="flex justify-between py-0.2 border-b border-black text-[10px]">
+              <span>Discount:</span>
+              <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-[11px]">
+            <span>TOTAL:</span>
+            <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -511,140 +963,169 @@ export const App: React.FC = () => {
       onClick={() => setActiveDropdownRowId(null)}
     >
       {/* Top Application Bar (Hidden during Print) */}
-      <header className="w-full bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-40 shadow-sm no-print">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+      <header className="w-full bg-white border-b border-slate-200 px-3 sm:px-5 py-2 sticky top-0 z-40 shadow-xs no-print">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
+          {/* Zone 1: Left Brand & Shop Details */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <img
               src="/horizontal-logo.png"
               alt="InvoicePro"
               className="h-7 sm:h-8 object-contain select-none"
             />
-            <div className="hidden sm:block h-5 w-px bg-slate-200"></div>
-            <p className="hidden sm:block text-xs text-slate-500 font-medium truncate max-w-[200px]">
-              {shopProfile.name}
-            </p>
+            <div className="hidden md:block h-5 w-px bg-slate-200"></div>
+            <div className="hidden md:flex flex-col">
+              <span className="text-xs font-bold text-slate-800 leading-none truncate max-w-[140px]">
+                {shopProfile.name}
+              </span>
+              <span className="text-[10px] text-slate-500 font-medium leading-tight">
+                Offline Billing
+              </span>
+            </div>
           </div>
 
-          {/* Controls & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Paper Format Segmented Switch */}
-            <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-300 shadow-inner">
-              <button
-                type="button"
-                onClick={() =>
-                  handleSaveShopProfile({ ...shopProfile, paperFormat: 'A5' })
-                }
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-md transition-all ${
-                  shopProfile.paperFormat === 'A5'
-                    ? 'bg-white text-black shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-black'
-                }`}
-                title="A5 Compact Slip / Voucher"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>A5 (Slip)</span>
-              </button>
+          {/* Zone 2: Dedicated Bill Stepper / Navigator (Distinct & Separated) */}
+          <div className="flex items-center bg-slate-100 border border-slate-300 p-1 rounded-xl shadow-xs gap-1">
+            {/* Previous Bill Button */}
+            <button
+              onClick={handlePrevBill}
+              disabled={!hasPrevBill}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                hasPrevBill
+                  ? 'bg-white hover:bg-slate-50 text-slate-800 shadow-xs active:scale-95 border border-slate-200 cursor-pointer'
+                  : 'text-slate-400 cursor-not-allowed bg-transparent'
+              }`}
+              title="Go to Previous Bill in History (Alt+Left)"
+            >
+              <ChevronLeft className="w-4 h-4 text-slate-600" />
+              <span className="hidden sm:inline">Prev Bill</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  handleSaveShopProfile({ ...shopProfile, paperFormat: 'A4' })
-                }
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-md transition-all ${
-                  shopProfile.paperFormat === 'A4'
-                    ? 'bg-white text-black shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-black'
-                }`}
-                title="A4 Standard Full Page"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>A4</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleSaveShopProfile({ ...shopProfile, paperFormat: 'thermal80' })
-                }
-                className={`flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-md transition-all ${
-                  shopProfile.paperFormat === 'thermal80'
-                    ? 'bg-white text-black shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-black'
-                }`}
-                title="80mm Continuous Thermal Roll"
-              >
-                <Receipt className="w-3.5 h-3.5" />
-                <span>Thermal</span>
-              </button>
+            {/* Current Bill Badge / Display */}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 rounded-lg shadow-inner">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider hidden sm:inline">Bill:</span>
+              <span className="text-xs font-black text-black font-mono tracking-tight">
+                {estimate.estimateNumber}
+              </span>
             </div>
 
-            {/* Past History Button */}
+            {/* Next Bill Button (Distinct Emerald Button) */}
             <button
-              onClick={() => setIsHistoryOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-black bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-sm"
-              title="View & Search Past Estimates History"
+              onClick={handleNextBill}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-200 hover:bg-emerald-300 border border-emerald-400 rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer"
+              title="Save current bill & proceed to Next Bill (Alt+Right)"
             >
-              <Clock className="w-3.5 h-3.5 text-slate-700" />
-              <span>History ({history.length})</span>
+              <span>Next Bill</span>
+              <ChevronRight className="w-4 h-4 text-emerald-800" />
             </button>
+
+            {/* New Bill Button */}
+            <button
+              onClick={handleNewEstimate}
+              className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-slate-700 hover:text-black hover:bg-white rounded-lg transition-all active:scale-95 cursor-pointer"
+              title="Start Blank New Bill (Ctrl+N)"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New</span>
+            </button>
+          </div>
+
+          {/* Zone 3: Tools & Output Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Paper Format Selector Dropdown */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={shopProfile.paperFormat}
+                onChange={(e) =>
+                  handleSaveShopProfile({
+                    ...shopProfile,
+                    paperFormat: e.target.value as any,
+                  })
+                }
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-bold rounded-lg px-2.5 py-1.5 pr-6 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-xs"
+                title="Select Printing Paper Format"
+              >
+                <option value="A4_2in1">✂️ A4 2-in-1 (Original + Duplicate)</option>
+                <option value="A4">📄 A4 Standard Full Page</option>
+                <option value="A5">📑 A5 Slip / Voucher</option>
+                <option value="thermal80">🧾 Thermal 80mm</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2 pointer-events-none" />
+            </div>
 
             {/* Products Button */}
             <button
               onClick={() => setIsProductsOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-black bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-sm"
-              title="Manage Products List (Add, Edit, View)"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="Manage Products Catalog"
             >
-              <Package className="w-3.5 h-3.5" />
-              <span>Products ({products.length})</span>
+              <Package className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden lg:inline">Products</span>
+              <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {products.length}
+              </span>
+            </button>
+
+            {/* History Button */}
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="View Past Saved Estimates"
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              <span className="hidden lg:inline">History</span>
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {history.length}
+              </span>
             </button>
 
             {/* Settings Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-sm"
-              title="Configure Shop Details"
+              className="flex items-center gap-1 p-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="Shop Settings & Payment QR"
             >
-              <Settings className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">Settings</span>
+              <Settings className="w-4 h-4 text-slate-600" />
             </button>
 
-            {/* New / Clear Button */}
+            {/* Preview Button */}
             <button
-              onClick={handleNewEstimate}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-sm"
-              title="Save current and start new estimate (Ctrl+N)"
+              onClick={() => setIsPreviewOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 rounded-lg border border-sky-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="Preview Exact Print Layout"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
-              <span>New</span>
-              <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-slate-100 text-slate-700 rounded font-mono border border-slate-200">Ctrl+N</kbd>
+              <Eye className="w-3.5 h-3.5 text-sky-600" />
+              <span className="hidden sm:inline">Preview</span>
             </button>
 
-            {/* Print Button */}
+            {/* Print Button (Primary Call To Action) */}
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-black text-white bg-black hover:bg-slate-800 rounded-lg shadow-md transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-black text-white bg-slate-900 hover:bg-black rounded-lg shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer"
               title="Print & Save Estimate Bill (Ctrl+P)"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Bill</span>
-              <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-slate-700 text-white rounded font-mono">Ctrl+P</kbd>
+              <Printer className="w-4 h-4 text-slate-200" />
+              <span>Print</span>
+              <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] bg-slate-700 text-white rounded font-mono">
+                Ctrl+P
+              </kbd>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Workspace (Large & Clear on Desktop, Ink-Saving Pure B&W on Print) */}
+      {/* Main Interactive Workspace */}
       <main
         className={`w-full ${
           shopProfile.paperFormat === 'thermal80'
             ? 'max-w-md'
             : 'max-w-4xl'
-        } p-3 sm:p-6 print:p-0 my-2 sm:my-3 flex-1 transition-all`}
+        } p-3 sm:p-5 print:p-0 my-2 flex-1 transition-all ${
+          shopProfile.paperFormat === 'A4_2in1' ? 'print:hidden' : ''
+        }`}
       >
         <div
           id="estimate-bill-print-area"
-          className={`bg-white rounded-xl shadow border border-slate-300 p-5 sm:p-7 print:p-0 print:border-none print:shadow-none print:rounded-none printable-area transition-all ${
+          className={`bg-white rounded-xl shadow-sm border-2 border-black p-5 sm:p-7 printable-area transition-all ${
             shopProfile.paperFormat === 'thermal80'
               ? 'format-thermal80 mx-auto'
               : shopProfile.paperFormat === 'A5'
@@ -652,67 +1133,96 @@ export const App: React.FC = () => {
               : 'format-A4'
           }`}
         >
-          {/* Bill Header */}
-          <div className="text-center border-b-2 border-black pb-2 mb-3">
-            {shopProfile.logoUrl && (
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <img
-                  src={shopProfile.logoUrl}
-                  alt="Shop Logo"
-                  className="h-10 sm:h-12 max-w-[220px] object-contain"
-                />
+          {/* Bill Header (Left Logo | Center Shop Info | Right Payment QR) */}
+          <div className="border-b-2 border-black pb-2 mb-2">
+            <div className="grid grid-cols-12 items-center gap-2">
+              {/* Left: Shop Logo (Bigger & closer to shop name) */}
+              <div className="col-span-3 flex justify-end items-center pr-3">
+                {shopProfile.logoUrl ? (
+                  <img
+                    src={shopProfile.logoUrl}
+                    alt="Shop Logo"
+                    className="h-16 sm:h-20 max-w-[150px] object-contain"
+                  />
+                ) : (
+                  <div className="w-10 h-10" />
+                )}
               </div>
-            )}
-            <h2 className="text-xl sm:text-2xl font-black text-black tracking-tight uppercase print:text-base leading-tight">
-              {shopProfile.name}
-            </h2>
-            {shopProfile.tagline && (
-              <p className="text-xs sm:text-sm font-semibold text-slate-700 print:text-black leading-tight mt-0.5">
-                {shopProfile.tagline}
-              </p>
-            )}
-            <p className="text-xs text-slate-700 print:text-black mt-0.5 leading-tight">
-              {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
-            </p>
-            <div className="mt-2 inline-block border-2 border-black px-4 py-0.5 rounded text-xs sm:text-sm font-black uppercase tracking-wider bg-white text-black leading-normal">
-              {shopProfile.estimateTitle || 'ESTIMATE BILL'}
+
+              {/* Center: Shop Info */}
+              <div className="col-span-6 text-center">
+                <h2 className="text-xl sm:text-2xl font-black text-black tracking-tight uppercase print:text-base leading-tight">
+                  {shopProfile.name}
+                </h2>
+                {shopProfile.tagline && (
+                  <p className="text-xs sm:text-sm font-semibold text-black leading-tight mt-0.5">
+                    {shopProfile.tagline}
+                  </p>
+                )}
+                <p className="text-xs text-black mt-0.5 leading-tight">
+                  {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
+                </p>
+                <div className="mt-1 text-xs sm:text-sm font-black uppercase tracking-wider text-black">
+                  — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
+                </div>
+              </div>
+
+              {/* Right: Payment QR Code (Closer to shop name) */}
+              <div className="col-span-3 flex flex-col justify-center items-start pl-3">
+                {(shopProfile.upiId || shopProfile.qrCodeUrl) ? (
+                  <div className="flex flex-col items-center">
+                    <PaymentQRCode
+                      upiId={shopProfile.upiId}
+                      shopName={shopProfile.name}
+                      grandTotal={grandTotal}
+                      customQrUrl={shopProfile.qrCodeUrl}
+                      size={58}
+                    />
+                    <span className="text-[8px] font-black uppercase tracking-wider text-black mt-0.5">
+                      Scan & Pay
+                    </span>
+                  </div>
+                ) : (
+                  <div className="w-10 h-10" />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Estimate Meta & Customer Box */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-2 border-black rounded-lg p-2.5 sm:p-3 mb-3 bg-white print:border print:rounded-none text-xs sm:text-sm">
-            {/* Left: Customer Info */}
-            <div className="space-y-1.5">
+          {/* Estimate Meta & Customer Section (Clean Simple Straight Lining - No Outer/Inner Boxes) */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 border-y border-black py-2 mb-2 bg-white text-xs sm:text-sm">
+            {/* Left: Customer Info (Name + Address + Contact) */}
+            <div className="sm:col-span-7 space-y-1">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black min-w-[65px] text-xs sm:text-sm">M/s / To:</span>
+                <span className="font-extrabold text-black min-w-[65px] text-xs sm:text-sm">M/s / To:</span>
                 <input
                   type="text"
-                  placeholder="Customer Name (optional)"
+                  placeholder="Customer / Party Name"
                   value={estimate.customerName}
                   onChange={(e) =>
                     setEstimate({ ...estimate, customerName: e.target.value })
                   }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 font-bold text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0"
+                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1 py-0.5 h-6 font-black text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0"
                 />
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black min-w-[65px] text-xs sm:text-sm">Contact:</span>
+                <span className="font-bold text-black min-w-[65px] text-xs sm:text-sm">Address:</span>
                 <input
                   type="text"
-                  placeholder="Phone / City"
-                  value={estimate.customerContact}
+                  placeholder="Customer Address / Destination"
+                  value={estimate.customerAddress || ''}
                   onChange={(e) =>
-                    setEstimate({ ...estimate, customerContact: e.target.value })
+                    setEstimate({ ...estimate, customerAddress: e.target.value })
                   }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0 font-medium"
+                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1 py-0.5 h-6 text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0 font-medium"
                 />
               </div>
             </div>
 
-            {/* Right: Estimate No & Date */}
-            <div className="space-y-1.5 sm:text-right flex flex-col justify-center">
-              <div className="flex sm:justify-end items-center gap-1.5">
+            {/* Right: Estimate No, Date & DP (Directly under Date) */}
+            <div className="sm:col-span-5 flex flex-col justify-center items-start sm:items-end space-y-1 sm:border-l sm:border-black sm:pl-4">
+              <div className="flex items-center gap-1.5">
                 <span className="font-bold text-black text-xs sm:text-sm">Est No:</span>
                 <input
                   type="text"
@@ -720,29 +1230,44 @@ export const App: React.FC = () => {
                   onChange={(e) =>
                     setEstimate({ ...estimate, estimateNumber: e.target.value })
                   }
-                  className="w-28 sm:text-right font-black text-black text-xs sm:text-sm bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 focus:outline-none print:border-none print:p-0"
+                  className="w-24 font-black text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none font-mono text-left"
                 />
               </div>
 
-              <div className="flex sm:justify-end items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <span className="font-bold text-black text-xs sm:text-sm">Date:</span>
                 <input
                   type="date"
                   value={estimate.date}
                   onChange={(e) => setEstimate({ ...estimate, date: e.target.value })}
-                  className="w-36 sm:text-right font-semibold text-black text-xs sm:text-sm bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 focus:outline-none print:border-none print:p-0"
+                  className="w-28 font-bold text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none text-left"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-black text-xs sm:text-sm">DP:</span>
+                <input
+                  type="text"
+                  placeholder="—"
+                  value={estimate.dpName || ''}
+                  onChange={(e) =>
+                    setEstimate({ ...estimate, dpName: e.target.value })
+                  }
+                  className="w-28 font-semibold text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none text-left"
+                  title="DP (Delivery Person / Dispatch Party / Dealer Point)"
                 />
               </div>
             </div>
           </div>
 
-          {/* Line Items Table */}
+          {/* Line Items Table (Clean CFC/Gatte + Qty + Rate + Amount) */}
           <div className="overflow-visible mb-2">
             <table className="w-full border-collapse text-xs sm:text-sm print-table">
               <thead>
                 <tr className="bg-white text-black border-y-2 border-black font-black uppercase text-xs tracking-wider">
                   <th className="py-1.5 px-1.5 text-center w-8">#</th>
                   <th className="py-1.5 px-2 text-left">Item Description</th>
+                  <th className="py-1.5 px-1 text-center w-16">CFC</th>
                   <th className="py-1.5 px-1.5 text-right w-16">Qty</th>
                   <th className="py-1.5 px-1.5 text-right w-20">Rate</th>
                   <th className="py-1.5 px-2 text-right w-24">Amount</th>
@@ -777,7 +1302,47 @@ export const App: React.FC = () => {
                           onChange={(e) =>
                             handleItemChange(item.id, 'description', e.target.value)
                           }
-                          onFocus={() => setActiveDropdownRowId(item.id)}
+                          onFocus={() => {
+                            setActiveDropdownRowId(item.id);
+                            setSelectedSuggestionIndex(0);
+                          }}
+                          onKeyDown={(e) => {
+                            if (matchingSuggestions.length > 0) {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setSelectedSuggestionIndex((prev) =>
+                                  prev < matchingSuggestions.length - 1 ? prev + 1 : 0
+                                );
+                                return;
+                              }
+                              if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setSelectedSuggestionIndex((prev) =>
+                                  prev > 0 ? prev - 1 : matchingSuggestions.length - 1
+                                );
+                                return;
+                              }
+                              if (e.key === 'Escape') {
+                                e.preventDefault();
+                                setActiveDropdownRowId(null);
+                                setSelectedSuggestionIndex(-1);
+                                return;
+                              }
+                              if (e.key === 'Enter' || e.key === 'Tab') {
+                                if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < matchingSuggestions.length) {
+                                  e.preventDefault();
+                                  handleSelectProduct(item.id, matchingSuggestions[selectedSuggestionIndex]);
+                                  return;
+                                }
+                              }
+                            }
+
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              itemCfcRefs.current[item.id]?.focus();
+                              itemCfcRefs.current[item.id]?.select();
+                            }
+                          }}
                           onClick={(e) => e.stopPropagation()}
                           className="w-full font-bold text-black bg-transparent px-1.5 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black print:p-0 text-xs sm:text-sm"
                         />
@@ -791,61 +1356,124 @@ export const App: React.FC = () => {
                             <div className="px-3 py-1 bg-slate-100 border-b border-slate-200 text-[10px] font-extrabold text-black uppercase tracking-wider flex items-center justify-between">
                               <span className="flex items-center gap-1">
                                 <Search className="w-3 h-3" />
-                                <span>Suggested Products</span>
+                                <span>Suggested Products (↑/↓ + Enter)</span>
                               </span>
                               <span className="text-[10px] text-slate-700 font-bold bg-white px-1.5 py-0.2 rounded border border-slate-300">
                                 {matchingSuggestions.length} items
                               </span>
                             </div>
-                            {matchingSuggestions.map((prod) => (
-                              <button
-                                key={prod.id}
-                                type="button"
-                                onClick={() => handleSelectProduct(item.id, prod)}
-                                className="w-full px-3 py-1.5 text-left hover:bg-slate-100 flex items-center justify-between border-b border-slate-100 last:border-none transition-colors"
-                              >
-                                <div className="truncate pr-2">
-                                  <div className="font-bold text-black text-xs sm:text-sm truncate">
-                                    {prod.name}
-                                  </div>
-                                  {prod.packaging && (
-                                    <div className="text-[10px] text-slate-500">
-                                      Unit: <span className="text-black font-semibold">{prod.packaging}</span>
+                            {matchingSuggestions.map((prod, sIdx) => {
+                              const parsed = parsePackaging(prod.packaging);
+                              const displayUnit = prod.unit || parsed.unit || 'PAC';
+                              const displayCase = prod.caseCount || parsed.caseCount;
+
+                              return (
+                                <button
+                                  key={prod.id}
+                                  type="button"
+                                  onClick={() => handleSelectProduct(item.id, prod)}
+                                  className={`w-full px-3 py-1.5 text-left flex items-center justify-between border-b border-slate-100 last:border-none transition-colors ${
+                                    selectedSuggestionIndex === sIdx
+                                      ? 'bg-sky-100 text-sky-950 font-bold'
+                                      : 'hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <div className="truncate pr-2">
+                                    <div className="font-bold text-black text-xs sm:text-sm truncate">
+                                      {prod.name}
                                     </div>
-                                  )}
-                                </div>
-                                <div className="text-right flex-shrink-0 pl-2">
-                                  <div className="font-black text-black text-xs sm:text-sm tabular-nums">
-                                    {shopProfile.currencySymbol}
-                                    {prod.rate.toFixed(2)}
-                                  </div>
-                                  {prod.mrp && (
-                                    <div className="text-[10px] text-slate-400 line-through">
-                                      MRP {prod.mrp}
+                                    <div className="text-[10px] text-slate-600 flex items-center gap-2 mt-0.5">
+                                      {displayCase ? (
+                                        <span className="bg-slate-100 px-1 rounded border border-slate-200 font-medium">
+                                          1 Gatta = <strong className="text-black">{displayCase} {displayUnit}</strong>
+                                        </span>
+                                      ) : (
+                                        <span>Unit: {prod.packaging || displayUnit}</span>
+                                      )}
+                                      {prod.cfcRate ? (
+                                        <span className="text-emerald-700 font-semibold">
+                                          Gatta Rate: {shopProfile.currencySymbol}{prod.cfcRate}
+                                        </span>
+                                      ) : null}
                                     </div>
-                                  )}
-                                </div>
-                              </button>
-                            ))}
+                                  </div>
+                                  <div className="text-right flex-shrink-0 pl-2">
+                                    <div className="font-black text-black text-xs sm:text-sm tabular-nums">
+                                      {shopProfile.currencySymbol}
+                                      {prod.rate.toFixed(2)}
+                                      <span className="text-[10px] text-slate-500 font-normal ml-0.5">/{displayUnit}</span>
+                                    </div>
+                                    {prod.mrp && (
+                                      <div className="text-[10px] text-slate-400 line-through">
+                                        MRP {prod.mrp}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </td>
-                      <td className="py-1 px-1.5 text-right">
+
+                      {/* CFC / Gatte Input Column */}
+                      <td className="py-1 px-1 text-center">
                         <input
-                          type="number"
-                          step="any"
-                          placeholder="1"
-                          value={item.qty}
+                          ref={(el) => (itemCfcRefs.current[item.id] = el)}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="—"
+                          value={item.cfc || ''}
                           onChange={(e) =>
-                            handleItemChange(item.id, 'qty', e.target.value)
+                            handleItemChange(item.id, 'cfc', e.target.value)
                           }
-                          className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              itemQtyRefs.current[item.id]?.focus();
+                              itemQtyRefs.current[item.id]?.select();
+                            }
+                          }}
+                          className="w-full text-center bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
+                          title="CFC (Number of Gatte / Cartons)"
                         />
                       </td>
+
+                      {/* Qty Column with Unit Badge */}
+                      <td className="py-1 px-1.5 text-right">
+                        <div className="flex items-center justify-end">
+                          <input
+                            ref={(el) => (itemQtyRefs.current[item.id] = el)}
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="1"
+                            value={item.qty}
+                            onChange={(e) =>
+                              handleItemChange(item.id, 'qty', e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                itemRateRefs.current[item.id]?.focus();
+                                itemRateRefs.current[item.id]?.select();
+                              }
+                            }}
+                            className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
+                          />
+                          {item.unit && (
+                            <span className="text-[10px] text-slate-500 font-bold uppercase ml-1 select-none flex-shrink-0 no-print">
+                              {item.unit}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Rate Column */}
                       <td className="py-1 px-1.5 text-right">
                         <input
-                          type="number"
-                          step="any"
+                          ref={(el) => (itemRateRefs.current[item.id] = el)}
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0.00"
                           value={item.rate}
                           onChange={(e) =>
@@ -855,10 +1483,14 @@ export const App: React.FC = () => {
                           className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
                         />
                       </td>
+
+                      {/* Calculated Amount Column */}
                       <td className="py-1 px-2 text-right font-black text-black tabular-nums text-xs sm:text-sm">
                         {shopProfile.currencySymbol}
                         {item.amount.toFixed(2)}
                       </td>
+
+                      {/* Delete Row Action */}
                       <td className="py-1 px-1 text-center no-print">
                         <button
                           onClick={() => handleRemoveItem(item.id)}
@@ -889,35 +1521,35 @@ export const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Bill Summary & Totals Block */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 border-t-2 border-black pt-2.5 text-xs sm:text-sm">
-            {/* Notes / Disclaimer (Left Column) */}
+          {/* Bill Summary & Totals Block (Simple Clean Lining, No Nested Boxes) */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 border-t-2 border-black pt-2 text-xs sm:text-sm">
+            {/* Left Column: Terms + Words + Payment QR Code */}
             <div className="sm:col-span-7 flex flex-col justify-between">
               <div>
                 <label className="block text-[10px] font-bold text-black uppercase tracking-wider mb-0.5">
-                  Terms / Note
+                  Terms / Return Notice (Hindi)
                 </label>
                 <textarea
                   rows={2}
                   value={estimate.notes}
                   onChange={(e) => setEstimate({ ...estimate, notes: e.target.value })}
-                  className="w-full text-xs text-black bg-white border border-slate-300 rounded p-1.5 focus:outline-none focus:border-black print:border-none print:p-0"
-                  placeholder="Terms or note..."
+                  className="w-full text-xs text-black bg-white border border-slate-300 rounded p-1.5 focus:outline-none focus:border-black print:border-none print:p-0 font-medium leading-relaxed"
+                  placeholder="Terms or return notice in Hindi..."
                 />
               </div>
 
-              {/* Total In Words (Clean thin box) */}
+              {/* Total In Words */}
               {grandTotal > 0 && (
-                <div className="mt-1 text-xs text-black bg-white p-1.5 rounded border border-slate-300 print:border print:border-black print:rounded-none leading-tight">
+                <div className="text-xs text-black leading-tight mt-2">
                   <span className="font-extrabold">Words: </span>
                   <span className="italic font-bold">{totalInWords}</span>
                 </div>
               )}
             </div>
 
-            {/* Calculations (Right Column) */}
-            <div className="sm:col-span-5 space-y-1">
-              <div className="flex justify-between items-center text-xs sm:text-sm py-0.5 border-b border-slate-200 print:border-black font-semibold">
+            {/* Calculations (Right Column) - Clean Lines, No Rounded Pill Box */}
+            <div className="sm:col-span-5 space-y-0.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm py-0.5 border-b border-black font-semibold">
                 <span className="text-black">Subtotal:</span>
                 <span className="font-black text-black tabular-nums">
                   {shopProfile.currencySymbol}
@@ -925,7 +1557,7 @@ export const App: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-xs sm:text-sm py-0.5 border-b border-slate-200 print:border-black">
+              <div className="flex justify-between items-center text-xs sm:text-sm py-0.5 border-b border-black">
                 <span className="text-black font-semibold">Discount:</span>
                 <div className="flex items-center gap-1 w-20 justify-end">
                   <span className="text-black font-bold text-xs">{shopProfile.currencySymbol}</span>
@@ -945,12 +1577,12 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grand Total Box */}
-              <div className="border-2 border-black bg-white rounded-lg p-1.5 sm:p-2 px-2.5 flex justify-between items-center print:rounded-none">
+              {/* Grand Total - Clean Classic Double Horizontal Lines */}
+              <div className="border-y-2 border-black py-1 my-1 flex justify-between items-center">
                 <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-black">
                   TOTAL:
                 </span>
-                <span className="text-lg sm:text-xl font-black tabular-nums text-black">
+                <span className="text-base sm:text-lg font-black tabular-nums text-black">
                   {shopProfile.currencySymbol}
                   {grandTotal.toFixed(2)}
                 </span>
@@ -958,12 +1590,38 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Footer Note (Compact, No Signatory) */}
-          <div className="mt-2.5 pt-1.5 border-t border-black text-center text-xs text-black italic font-medium">
-            * Thank you for your business!
+          {/* Footer Note (Authentic B&W Format) */}
+          <div className="mt-3 pt-2 border-t border-black flex items-center justify-between text-xs text-black">
+            <div className="text-[10px] text-black italic">
+              * E. & O.E. (भूल-चूक लेनी-देनी)
+            </div>
           </div>
         </div>
       </main>
+
+      {/* A4 2-in-1 Dedicated Print Container (Rendered during Print when format is A4_2in1) */}
+      {shopProfile.paperFormat === 'A4_2in1' && (
+        <div className="print-only format-A4-2in1-container w-full bg-white text-black p-0 m-0">
+          {/* Top: Original Copy */}
+          {renderPrintCopy('ORIGINAL')}
+
+          {/* Simple Perforation Divider (Clean single dashed line - No emojis) */}
+          <div className="cut-line-separator w-full border-t border-dashed border-black" />
+
+          {/* Bottom: Duplicate Copy */}
+          {renderPrintCopy('DUPLICATE')}
+        </div>
+      )}
+
+      {/* Print Preview Modal */}
+      <PrintPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        shopProfile={shopProfile}
+        estimate={estimate}
+        onPrint={handlePrint}
+        onChangeFormat={(fmt) => handleSaveShopProfile({ ...shopProfile, paperFormat: fmt })}
+      />
 
       {/* Shop Settings Modal */}
       <ShopSettingsModal
@@ -1001,3 +1659,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

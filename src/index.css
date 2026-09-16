@@ -21,11 +21,22 @@
   }
 }
 
-/* Print Specific Optimizations (Compact, Zero Ink Waste, Pure B&W) */
+/* Print Specific Optimizations (Zero Paper Waste, Clean Proportions, Pure B&W) */
 @media print {
   @page {
-    margin: 4mm;
+    margin: 4mm 5mm 4mm 5mm;
     size: auto;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 8.5pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    line-height: 1.25;
   }
 
   *, *::before, *::after {
@@ -38,15 +49,6 @@
     print-color-adjust: exact;
   }
 
-  body {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    font-size: 8.5pt;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.25;
-  }
-
   .no-print {
     display: none !important;
   }
@@ -55,39 +57,75 @@
     display: block !important;
   }
 
-  /* Compact container for paper */
+  /* Full paper width utilization - Zero wasted side margin */
   .printable-area {
     box-shadow: none !important;
-    border: none !important;
     width: 100% !important;
-    padding: 0 !important;
-    margin: 0 auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 
-  /* Half-Page / Compact Slip formatting */
+  /* A4 2-in-1 Dedicated Print Layout: Exactly 2 equal halves on 1 A4 Sheet */
+  .format-A4-2in1-container {
+    width: 100% !important;
+    max-height: 286mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .copy-half-sheet {
+    width: 100% !important;
+    max-height: 139mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    border: 1.5px solid #000000 !important;
+    padding: 3mm !important;
+  }
+
+  .cut-line-separator {
+    width: 100% !important;
+    margin: 2mm 0 !important;
+    box-sizing: border-box !important;
+  }
+
   .format-A4 {
-    max-width: 175mm !important;
-    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     font-size: 9pt !important;
+    margin: 0 !important;
+    border: 1.5px solid #000000 !important;
+    padding: 4mm !important;
+    box-sizing: border-box !important;
   }
 
   .format-A5 {
-    max-width: 130mm !important;
-    margin: 0 auto !important;
-    font-size: 8pt !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 8.5pt !important;
+    margin: 0 !important;
+    border: 1.5px solid #000000 !important;
+    padding: 3mm !important;
+    box-sizing: border-box !important;
   }
 
-  /* 80mm Continuous Roll formatting */
   .format-thermal80 {
-    width: 70mm !important;
-    max-width: 70mm !important;
-    font-size: 7pt !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
+    font-size: 7.5pt !important;
     margin: 0 auto !important;
+    border: 1px solid #000000 !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
   }
 
-  /* Tight, ink-saving table borders */
+  /* Sharp, ink-saving table borders */
   .print-table {
-    border: 1px solid #000000 !important;
+    border: 1.5px solid #000000 !important;
     border-collapse: collapse !important;
     width: 100% !important;
   }
@@ -95,7 +133,12 @@
   .print-table th,
   .print-table td {
     border: 1px solid #000000 !important;
-    padding: 1.5px 3px !important;
+    padding: 2px 3.5px !important;
+  }
+
+  .print-table th {
+    background-color: #ffffff !important;
+    font-weight: 900 !important;
   }
 }
 

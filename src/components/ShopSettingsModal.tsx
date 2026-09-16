@@ -86,6 +86,25 @@ export const ShopSettingsModal: React.FC<Props> = ({
     e.target.value = '';
   };
 
+  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('QR image should be under 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData((prev) => ({ ...prev, qrCodeUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
@@ -180,6 +199,80 @@ export const ShopSettingsModal: React.FC<Props> = ({
             )}
           </div>
 
+          {/* Payment QR Code & UPI Details (Optional) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Payment QR Code / UPI <span className="text-slate-400 font-normal lowercase">(for bill scan & pay)</span>
+              </label>
+              {formData.qrCodeUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, qrCodeUrl: undefined })}
+                  className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 transition-colors"
+                  title="Remove uploaded QR image"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove QR Image</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  UPI ID (Auto-generates payment QR)
+                </label>
+                <input
+                  type="text"
+                  value={formData.upiId || ''}
+                  onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-xs font-mono font-bold text-slate-800 bg-white"
+                  placeholder="e.g. 9876543210@paytm or shop@okhdfcbank"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Or Upload Standee QR Photo (GPay / PhonePe / Paytm / Bank)
+                </label>
+                {formData.qrCodeUrl ? (
+                  <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200">
+                    <img
+                      src={formData.qrCodeUrl}
+                      alt="Custom QR Preview"
+                      className="w-12 h-12 object-contain border border-slate-200 rounded p-0.5"
+                    />
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-slate-800">Custom Standee QR uploaded</p>
+                      <p className="text-[10px] text-slate-500">Will print directly in payment box</p>
+                    </div>
+                    <label className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded cursor-pointer">
+                      Change
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleQrUpload}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 p-2 border border-dashed border-slate-300 hover:border-slate-400 bg-white rounded cursor-pointer text-xs font-semibold text-slate-600">
+                    <Upload className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Upload QR Image File</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleQrUpload}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Shop / Business Name *
@@ -251,14 +344,14 @@ export const ShopSettingsModal: React.FC<Props> = ({
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Default Terms / Disclaimer Note
+              Default Terms / Disclaimer Note (Hindi Goods Return Notice)
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={2}
               value={formData.defaultTerms}
               onChange={(e) => setFormData({ ...formData, defaultTerms: e.target.value })}
-              className="w-full px-3.5 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-sm text-slate-700 transition-all"
-              placeholder="e.g. This is an estimate only, not a tax invoice."
+              className="w-full px-3.5 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-xs font-medium text-slate-800 transition-all"
+              placeholder="e.g. नोट: बिका हुआ माल वापस नहीं होगा। भूल-चूक लेनी-देनी। आपके व्यापार के लिए धन्यवाद!"
             />
           </div>
 
@@ -268,47 +361,62 @@ export const ShopSettingsModal: React.FC<Props> = ({
               <Printer className="w-4 h-4 text-sky-600" />
               <span>Default Paper Format</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, paperFormat: 'A4' })}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 text-center transition-all ${
+                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-center transition-all ${
                   formData.paperFormat === 'A4'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-800 font-bold shadow-sm ring-2 ring-sky-500/20'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <FileText className="w-5 h-5 text-sky-600" />
-                <span className="text-xs font-semibold">A4 Sheet</span>
-                <span className="text-[10px] text-slate-400">Standard</span>
+                <FileText className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-bold">A4 Full</span>
+                <span className="text-[9px] text-slate-400">1 Copy Full</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, paperFormat: 'A4_2in1' })}
+                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-center transition-all ${
+                  formData.paperFormat === 'A4_2in1'
+                    ? 'border-sky-500 bg-sky-50/70 text-sky-800 font-bold shadow-sm ring-2 ring-sky-500/20'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                }`}
+                title="Print Original (Top) & Duplicate (Bottom) on single A4 sheet"
+              >
+                <Layers className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-bold">A4 (2-in-1)</span>
+                <span className="text-[9px] text-emerald-600 font-bold">Orig + Dupl</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, paperFormat: 'A5' })}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 text-center transition-all ${
+                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-center transition-all ${
                   formData.paperFormat === 'A5'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-800 font-bold shadow-sm ring-2 ring-sky-500/20'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <Layers className="w-5 h-5 text-sky-600" />
-                <span className="text-xs font-semibold">A5 Half</span>
-                <span className="text-[10px] text-slate-400">Compact</span>
+                <Layers className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-bold">A5 Slip</span>
+                <span className="text-[9px] text-slate-400">Half Sheet</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, paperFormat: 'thermal80' })}
-                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 text-center transition-all ${
+                className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-center transition-all ${
                   formData.paperFormat === 'thermal80'
                     ? 'border-sky-500 bg-sky-50/70 text-sky-800 font-bold shadow-sm ring-2 ring-sky-500/20'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <Receipt className="w-5 h-5 text-sky-600" />
-                <span className="text-xs font-semibold">80mm</span>
-                <span className="text-[10px] text-slate-400">Thermal</span>
+                <Receipt className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-bold">80mm</span>
+                <span className="text-[9px] text-slate-400">Thermal Roll</span>
               </button>
             </div>
           </div>

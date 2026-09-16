@@ -1,4 +1,4 @@
-export type PaperFormat = 'A4' | 'A5' | 'thermal80';
+export type PaperFormat = 'A4' | 'A5' | 'thermal80' | 'A4_2in1';
 
 export interface Product {
   id: string;
@@ -9,6 +9,9 @@ export interface Product {
   cfcRate?: number;
   pacRate?: number;
   packaging?: string;
+  unit?: string;
+  caseCount?: number;
+  cfcUnit?: string;
 }
 
 export interface ShopProfile {
@@ -21,21 +24,30 @@ export interface ShopProfile {
   paperFormat: PaperFormat;
   currencySymbol: string;
   logoUrl?: string;
+  upiId?: string;
+  qrCodeUrl?: string;
 }
 
 export interface EstimateItem {
   id: string;
   description: string;
-  qty: number | '';
-  rate: number | '';
+  dp?: string;
+  cfc?: number | string;
+  qty: number | string;
+  rate: number | string;
   amount: number;
+  unit?: string;
+  caseCount?: number;
+  looseQty?: number;
 }
 
 export interface ActiveEstimate {
   estimateNumber: string;
   date: string;
   customerName: string;
+  customerAddress?: string;
   customerContact: string;
+  dpName?: string;
   items: EstimateItem[];
   discount: number | '';
   notes: string;
@@ -46,7 +58,9 @@ export interface SavedEstimate {
   estimateNumber: string;
   date: string;
   customerName: string;
+  customerAddress?: string;
   customerContact: string;
+  dpName?: string;
   items: EstimateItem[];
   subtotal: number;
   discount: number;
