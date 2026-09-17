@@ -1,0 +1,94 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Windows Installer & Mountable ISO
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Web Assets & Electron Bundle
+        run: npm run build
+
+      - name: Build Windows Executable & Package Mountable ISO
+        run: npm run dist:iso
+
+      - name: Generate SHA-256 Checksums
+        shell: pwsh
+        run: |
+          $targetDirs = @("dist-release", "release")
+          $releaseFiles = @()
+          foreach ($dir in $targetDirs) {
+            if (Test-Path $dir) {
+              $files = Get-ChildItem -Path $dir -File | Where-Object { $_.Extension -in @(".exe", ".iso") -and $_.Name -notmatch "blockmap" }
+              $releaseFiles += $files
+            }
+          }
+          
+          $checksumPath = "release-checksums.txt"
+          if (Test-Path $checksumPath) { Remove-Item $checksumPath -Force }
+          
+          foreach ($file in $releaseFiles) {
+            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash
+            $line = "$hash  $($file.Name)"
+            Add-Content -Path $checksumPath -Value $line
+            Write-Host $line
+          }
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-binaries
+          path: |
+            dist-release/*.exe
+            dist-release/*.iso
+            release/*.exe
+            release/*.iso
+            release-checksums.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-release/*.exe
+            dist-release/*.iso
+            release/*.exe
+            release/*.iso
+            release-checksums.txt
+          body: |
+            ## 🧾 InvoicePro - Estimate Bill Printer Release
+            
+            ### 📦 Download Assets:
+            - **Mountable ISO Image (Recommended)**: Download the `.iso` file, double-click to mount in Windows Explorer, and run the installer. Prevents Windows Defender SmartScreen "Mark of the Web" warnings.
+            - **Standalone Setup EXE**: Direct NSIS installer executable.
+            
+            ### 🔒 Verification (SHA-256 Checksums):
+            Refer to the attached `release-checksums.txt` file for cryptographic verification.
+            
+            ### 💾 Data Persistence:
+            All databases and shop configurations are permanently stored on your local drive at `%APPDATA%\offline-estimate-printer`. Unmounting or deleting the ISO will not affect your saved bills or products.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
