@@ -32,6 +32,9 @@ jobs:
 
       - name: Build Windows Executable & Package Mountable ISO
         run: npm run dist:iso
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate SHA-256 Checksums
         shell: pwsh

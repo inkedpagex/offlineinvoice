@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:start": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win",
+    "dist:win": "npm run build && electron-builder --win --publish never",
     "package:iso": "node ./scripts/build-iso.mjs",
     "dist:iso": "npm run dist:win && npm run package:iso"
   },
@@ -40,6 +40,7 @@
     "appId": "in.chiragchak.invoicepro",
     "productName": "InvoicePro",
     "copyright": "Copyright © 2026 Chirag Chak (chiragchak.in)",
+    "publish": null,
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "dist-release"
