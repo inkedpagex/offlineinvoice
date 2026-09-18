@@ -101,44 +101,44 @@ export const PrintPreviewModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Customer & Bill Meta Section (Structured, Balanced, Crisp Print Layout) */}
-        <div className="grid grid-cols-12 gap-2 border-y border-black py-1 mb-1.5 items-center">
-          {/* Customer Details: Prominent M/s Name & Address */}
-          <div className="col-span-6 space-y-0.5 pr-1">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-extrabold text-black uppercase text-[11px] sm:text-xs min-w-[55px]">M/s / To:</span>
-              <span className="font-black text-black text-sm sm:text-base leading-tight truncate">
-                {estimate.customerName || '—'}
-              </span>
-            </div>
-            {estimate.customerAddress && (
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-bold text-black text-[10.5px] sm:text-[11.5px] min-w-[55px]">Address:</span>
-                <span className="text-black text-xs sm:text-sm font-semibold leading-tight truncate">
-                  {estimate.customerAddress}
-                </span>
-              </div>
-            )}
+        {/* Sub-Header Strip: ESTIMATE | S. No. | Date */}
+        <div className="flex justify-between items-center border-b border-black py-0.5 px-1 mb-1.5 text-xs bg-white">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-xs uppercase tracking-wider text-black">ESTIMATE</span>
           </div>
-
-          {/* Right: Est No, Date & DS in Clean Structured Boxes */}
-          <div className="col-span-6 flex items-center justify-end gap-x-2 text-right border-l border-black pl-2 whitespace-nowrap">
-            {/* Est No */}
-            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
-              <span className="font-bold text-black text-[9.5px] uppercase">Est No:</span>
-              <span className="font-black text-black text-xs sm:text-sm font-mono">{estimate.estimateNumber}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-black text-[10px] uppercase">S. No.:</span>
+              <span className="font-black text-black text-sm font-mono">{estimate.estimateNumber}</span>
             </div>
-
-            {/* Date in dd-mm-yy */}
-            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
-              <span className="font-bold text-black text-[9.5px] uppercase">Date:</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-black text-[10px] uppercase">Date:</span>
               <span className="font-black text-black text-xs">{formatDateDDMMYY(estimate.date)}</span>
             </div>
+          </div>
+        </div>
 
-            {/* DS */}
-            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
-              <span className="font-bold text-black text-[9.5px] uppercase">DS:</span>
-              <span className="font-black text-black text-xs min-w-[36px] text-center">
+        {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
+        <div className="border-b border-black pb-1.5 mb-1.5 text-xs space-y-1">
+          {/* Row 1: Name (100% Full Width) */}
+          <div className="flex items-baseline gap-2 w-full">
+            <span className="font-black text-black uppercase text-xs min-w-[50px]">Name:</span>
+            <span className="font-black text-black text-sm sm:text-base leading-tight flex-1 border-b border-dotted border-black pb-0.5">
+              {estimate.customerName || '—'}
+            </span>
+          </div>
+
+          {/* Row 2: Add (Address) + D.S. */}
+          <div className="flex items-baseline justify-between gap-3 w-full">
+            <div className="flex items-baseline gap-2 flex-1 min-w-0">
+              <span className="font-extrabold text-black uppercase text-[11px] min-w-[50px]">Add:</span>
+              <span className="font-bold text-black text-xs sm:text-sm leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5">
+                {estimate.customerAddress || '—'}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 flex-shrink-0 pl-2">
+              <span className="font-black text-black uppercase text-[11px]">D.S.:</span>
+              <span className="font-black text-black text-xs sm:text-sm min-w-[60px] text-center border-b border-dotted border-black pb-0.5">
                 {estimate.dpName || '—'}
               </span>
             </div>

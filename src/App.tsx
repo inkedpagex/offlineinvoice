@@ -924,44 +924,44 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Customer & Bill Meta Section (Structured, Balanced, Crisp Print Layout) */}
-          <div className="grid grid-cols-12 gap-1.5 border-y border-black py-1 mb-1 text-[10px] items-center">
-            {/* Left: Customer Info (Prominent Name + Address) */}
-            <div className="col-span-6 space-y-0.5 pr-1">
+          {/* Sub-Header Strip: ESTIMATE | S. No. | Date */}
+          <div className="flex justify-between items-center border-b border-black py-0.5 px-1 mb-1 text-[10px] bg-white">
+            <div className="flex items-center gap-2">
+              <span className="font-black text-[10.5px] uppercase tracking-wider text-black">ESTIMATE</span>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-baseline gap-1">
-                <span className="font-extrabold text-black uppercase text-[10px] min-w-[50px]">M/s / To:</span>
-                <span className="font-black text-black text-xs sm:text-[13px] leading-tight truncate">
-                  {estimate.customerName || '—'}
-                </span>
+                <span className="font-bold text-black text-[9px] uppercase">S. No.:</span>
+                <span className="font-black text-black text-xs font-mono">{estimate.estimateNumber}</span>
               </div>
-              {estimate.customerAddress && (
-                <div className="flex items-baseline gap-1">
-                  <span className="font-bold text-black text-[9.5px] min-w-[50px]">Address:</span>
-                  <span className="text-black text-[10.5px] sm:text-[11px] font-semibold leading-tight truncate">
-                    {estimate.customerAddress}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-baseline gap-1">
+                <span className="font-bold text-black text-[9px] uppercase">Date:</span>
+                <span className="font-black text-black text-[10px]">{formatDateDDMMYY(estimate.date)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
+          <div className="border-b border-black pb-1 mb-1 text-[10px] space-y-1">
+            {/* Row 1: Name (100% Full Width) */}
+            <div className="flex items-baseline gap-1.5 w-full">
+              <span className="font-black text-black uppercase text-[10.5px] min-w-[44px]">Name:</span>
+              <span className="font-black text-black text-xs sm:text-[14px] leading-tight flex-1 border-b border-dotted border-black pb-0.5">
+                {estimate.customerName || '—'}
+              </span>
             </div>
 
-            {/* Right: Est No, Date & DS in Clean Structured Boxes */}
-            <div className="col-span-6 flex items-center justify-end gap-x-1.5 text-right border-l border-black pl-2 whitespace-nowrap">
-              {/* Est No */}
-              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
-                <span className="font-bold text-black text-[8.5px] uppercase">Est No:</span>
-                <span className="font-black text-black text-[10px] font-mono">{estimate.estimateNumber}</span>
+            {/* Row 2: Add (Address) + D.S. */}
+            <div className="flex items-baseline justify-between gap-3 w-full">
+              <div className="flex items-baseline gap-1.5 flex-1 min-w-0">
+                <span className="font-extrabold text-black uppercase text-[9.5px] min-w-[44px]">Add:</span>
+                <span className="font-bold text-black text-[11px] sm:text-xs leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5">
+                  {estimate.customerAddress || '—'}
+                </span>
               </div>
-
-              {/* Date in dd-mm-yy */}
-              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
-                <span className="font-bold text-black text-[8.5px] uppercase">Date:</span>
-                <span className="font-black text-black text-[9.5px]">{formatDateDDMMYY(estimate.date)}</span>
-              </div>
-
-              {/* DS */}
-              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
-                <span className="font-bold text-black text-[8.5px] uppercase">DS:</span>
-                <span className="font-bold text-black text-[9.5px] min-w-[32px] text-center">
+              <div className="flex items-baseline gap-1 flex-shrink-0 pl-2">
+                <span className="font-black text-black uppercase text-[9.5px]">D.S.:</span>
+                <span className="font-black text-black text-[10.5px] min-w-[50px] text-center border-b border-dotted border-black pb-0.5">
                   {estimate.dpName || '—'}
                 </span>
               </div>
@@ -1308,54 +1308,29 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Estimate Meta & Customer Section (Clean Simple Straight Lining - No Outer/Inner Boxes) */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 border-y border-black py-2 mb-2 bg-white text-xs sm:text-sm">
-            {/* Left: Customer Info (Prominent Name + Address) */}
-            <div className="sm:col-span-6 space-y-1">
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-black min-w-[65px] text-xs sm:text-sm uppercase">M/s / To:</span>
-                <input
-                  type="text"
-                  placeholder="Customer / Party Name"
-                  value={estimate.customerName}
-                  onChange={(e) =>
-                    setEstimate({ ...estimate, customerName: e.target.value })
-                  }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 font-black text-black text-sm sm:text-base focus:outline-none print:border-none print:p-0"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black min-w-[65px] text-xs sm:text-sm">Address:</span>
-                <input
-                  type="text"
-                  placeholder="Customer Address / Destination"
-                  value={estimate.customerAddress || ''}
-                  onChange={(e) =>
-                    setEstimate({ ...estimate, customerAddress: e.target.value })
-                  }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0 font-bold"
-                />
-              </div>
+          {/* Estimate Meta Strip (ESTIMATE Title | S. No. | Date) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-black py-1 px-2 mb-2 bg-slate-50 text-xs sm:text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-black uppercase tracking-wider text-black text-xs sm:text-sm">
+                — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
+              </span>
             </div>
-
-            {/* Right: Estimate No, Date & DS with clean structured cards and DS 1-click select */}
-            <div className="sm:col-span-6 flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:border-l sm:border-black sm:pl-3">
-              {/* Est No Card */}
-              <div className="flex items-center bg-slate-50 border border-black rounded px-2 py-1 shadow-2xs">
-                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">Est No:</span>
+            <div className="flex items-center gap-3">
+              {/* S. No. */}
+              <div className="flex items-center bg-white border border-black rounded px-2 py-0.5 shadow-2xs">
+                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">S. No.:</span>
                 <input
                   type="text"
                   value={estimate.estimateNumber}
                   onChange={(e) =>
                     setEstimate({ ...estimate, estimateNumber: e.target.value })
                   }
-                  className="w-14 font-black text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none font-mono text-left"
+                  className="w-16 font-black text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none font-mono text-left"
                 />
               </div>
 
-              {/* Date Card */}
-              <div className="flex items-center bg-slate-50 border border-black rounded px-2 py-1 shadow-2xs">
+              {/* Date */}
+              <div className="flex items-center bg-white border border-black rounded px-2 py-0.5 shadow-2xs">
                 <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">Date:</span>
                 <input
                   type="date"
@@ -1364,10 +1339,43 @@ export const App: React.FC = () => {
                   className="w-32 font-bold text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none text-left cursor-pointer"
                 />
               </div>
+            </div>
+          </div>
 
-              {/* DS Dropdown Selector Card */}
-              <div className="flex items-center bg-slate-50 border border-black rounded px-2.5 py-1 shadow-2xs">
-                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">DS:</span>
+          {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
+          <div className="border-b border-black pb-2 mb-2 space-y-1.5 bg-white">
+            {/* Row 1: Name (100% Full Width, Big Bold Font) */}
+            <div className="flex items-center gap-2 w-full">
+              <span className="font-black text-black text-sm sm:text-base uppercase min-w-[50px]">Name:</span>
+              <input
+                type="text"
+                placeholder="Customer / Party Name (Full space available)"
+                value={estimate.customerName}
+                onChange={(e) =>
+                  setEstimate({ ...estimate, customerName: e.target.value })
+                }
+                className="w-full bg-white border-b-2 border-slate-300 hover:border-black focus:border-black px-2 py-0.5 font-black text-black text-base sm:text-lg focus:outline-none print:border-none"
+              />
+            </div>
+
+            {/* Row 2: Add (Address) + D.S. */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 w-full">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <span className="font-bold text-black text-xs sm:text-sm uppercase min-w-[50px]">Add:</span>
+                <input
+                  type="text"
+                  placeholder="Customer Address / Destination"
+                  value={estimate.customerAddress || ''}
+                  onChange={(e) =>
+                    setEstimate({ ...estimate, customerAddress: e.target.value })
+                  }
+                  className="w-full bg-white border-b border-slate-300 hover:border-black focus:border-black px-2 py-0.5 font-bold text-black text-xs sm:text-sm focus:outline-none print:border-none"
+                />
+              </div>
+
+              {/* D.S. Dropdown */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="font-extrabold text-black text-xs uppercase min-w-[32px] text-slate-700">D.S.:</span>
                 <select
                   value={estimate.dpName || ''}
                   onChange={(e) => {
@@ -1380,10 +1388,10 @@ export const App: React.FC = () => {
                       setEstimate({ ...estimate, dpName: e.target.value });
                     }
                   }}
-                  className="font-bold text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none cursor-pointer pr-1 text-slate-900"
+                  className="font-bold text-black text-xs sm:text-sm bg-slate-50 border border-black rounded px-2.5 py-1 shadow-2xs focus:outline-none cursor-pointer text-slate-900"
                   title="Select DS (Dispatch / Salesperson / Counter)"
                 >
-                  <option value="">— Select DS —</option>
+                  <option value="">— Select D.S. —</option>
                   {(shopProfile.dsOptions && shopProfile.dsOptions.length > 0
                     ? shopProfile.dsOptions
                     : ['Gautam', 'Viresh', 'Counter Sale']
