@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Search, Trash2, Edit2, RotateCcw, Check, Layers } from 'lucide-react';
+import { X, Plus, Search, Trash2, Edit2, RotateCcw, Check, Layers, ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
 import defaultProducts from '../data/defaultProducts.json';
 import { parsePackaging } from '../utils/cfcHelper';
@@ -10,6 +10,7 @@ interface Props {
   products: Product[];
   onSaveProducts: (products: Product[]) => void;
   currencySymbol: string;
+  onAddProductToEstimate?: (product: Product) => void;
 }
 
 export const ProductManagementModal: React.FC<Props> = ({
@@ -18,6 +19,7 @@ export const ProductManagementModal: React.FC<Props> = ({
   products,
   onSaveProducts,
   currencySymbol,
+  onAddProductToEstimate,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -558,6 +560,20 @@ export const ProductManagementModal: React.FC<Props> = ({
                       </td>
                       <td className="py-2 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {onAddProductToEstimate && (
+                            <button
+                              onClick={() => {
+                                onAddProductToEstimate(p);
+                                setSuccessMsg(`🛒 Added "${p.name}" to current bill!`);
+                                setTimeout(() => setSuccessMsg(null), 2500);
+                              }}
+                              className="text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 transition-all active:scale-95 shadow-xs"
+                              title="Add this item directly into current bill"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="hidden sm:inline">Add</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => handleStartEdit(p)}
                             className="text-slate-400 hover:text-sky-600 p-1.5 rounded hover:bg-sky-50 transition-colors"

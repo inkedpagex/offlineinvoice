@@ -3,7 +3,8 @@ import { X, Printer, Eye } from 'lucide-react';
 import { ShopProfile, ActiveEstimate, PaperFormat } from '../types';
 import { numberToWords } from '../utils/numberToWords';
 import { PaymentQRCode } from './PaymentQRCode';
-import { formatQtyWithUnit } from '../utils/cfcHelper';
+import { GaneshGraphic } from './GaneshGraphic';
+import { formatQtyWithUnit, formatDateDDMMYY } from '../utils/cfcHelper';
 
 interface Props {
   isOpen: boolean;
@@ -24,186 +25,227 @@ export const PrintPreviewModal: React.FC<Props> = ({
 }) => {
   if (!isOpen) return null;
 
-  const subtotal = estimate.items.reduce((sum, item) => sum + (item.amount || 0), 0);
-  const discountVal = typeof estimate.discount === 'number' ? estimate.discount : 0;
+  const subtotal = estimate.items.reduce((sum, item) => {
+    const num = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
+    return sum + num;
+  }, 0);
+  const discountVal = typeof estimate.discount === 'number' ? estimate.discount : (parseFloat(String(estimate.discount)) || 0);
   const grandTotal = Math.max(0, subtotal - discountVal);
   const totalInWords = numberToWords(grandTotal);
 
+  const headerRightMode = shopProfile.headerRightType || 'ganesh';
+
   // Reusable Single Copy Renderer (Clean Simple Lining, Pure B&W)
-  const renderBillCopy = (copyType?: 'ORIGINAL' | 'DUPLICATE', isCompact: boolean = false) => (
-    <div className={`bg-white text-black transition-all border-2 border-black ${isCompact ? 'p-3 text-[11px]' : 'p-5 sm:p-6 text-xs'}`}>
-      {/* Top Copy Tag: Original / Duplicate Marker (No overlap with QR) */}
-      {copyType && (
-        <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1 text-black">
-          <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
-          <span className="font-mono text-[8px] text-black">ESTIMATE</span>
-        </div>
-      )}
-
-      {/* Header (Left Logo | Center Shop Details | Right Payment QR) */}
-      <div className="border-b-2 border-black pb-1.5 mb-2">
-
-        <div className="grid grid-cols-12 items-center gap-1.5">
-          {/* Left: Shop Logo (Bigger & closer to shop info) */}
-          <div className="col-span-3 flex justify-end items-center pr-2">
-            {shopProfile.logoUrl ? (
-              <img
-                src={shopProfile.logoUrl}
-                alt="Logo"
-                className={`${isCompact ? 'max-h-14 max-w-[125px]' : 'max-h-18 max-w-[150px]'} object-contain`}
-              />
-            ) : (
-              <div className="w-6 h-6" />
-            )}
+  const renderBillCopy = (copyLabel?: string, isCompact: boolean = false) => (
+    <div className={`bg-white text-black border-2 border-black rounded-xs shadow-sm font-sans mb-4 ${isCompact ? 'p-2.5 sm:p-3 text-[10.5px]' : 'p-3 sm:p-4 text-xs'}`}>
+      <div>
+        {/* Top Copy Label */}
+        {copyLabel && (
+          <div className="flex justify-between items-center text-[9px] font-black uppercase border-b border-black pb-0.5 mb-1.5 text-black">
+            <span>{copyLabel}</span>
+            <span className="font-mono text-[9px] text-black">ESTIMATE</span>
           </div>
+        )}
 
-          {/* Center: Shop Info */}
-          <div className="col-span-6 text-center">
-            <h1 className={`${isCompact ? 'text-lg' : 'text-xl sm:text-2xl'} font-black uppercase tracking-tight text-black leading-tight`}>
-              {shopProfile.name}
-            </h1>
-            {shopProfile.tagline && (
-              <p className="text-[10px] sm:text-xs font-bold text-black mt-0.5">{shopProfile.tagline}</p>
-            )}
-            <p className="text-[10px] sm:text-xs text-black mt-0.5">
-              {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
-            </p>
-            <div className="mt-1 text-[10px] sm:text-xs font-black uppercase tracking-wider text-black">
-              — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
-            </div>
-          </div>
-
-          {/* Right: Payment QR Code (Closer to shop info) */}
-          <div className="col-span-3 flex flex-col justify-center items-start pl-2">
-            {(shopProfile.upiId || shopProfile.qrCodeUrl) ? (
-              <div className="flex flex-col items-center">
-                <PaymentQRCode
-                  upiId={shopProfile.upiId}
-                  shopName={shopProfile.name}
-                  grandTotal={grandTotal}
-                  customQrUrl={shopProfile.qrCodeUrl}
-                  size={isCompact ? 48 : 58}
+        {/* Header Info */}
+        <div className="border-b-2 border-black pb-1.5 mb-1.5">
+          <div className="grid grid-cols-12 items-center gap-2">
+            {/* Shop Logo */}
+            <div className="col-span-3 flex justify-end items-center pr-2">
+              {shopProfile.logoUrl ? (
+                <img
+                  src={shopProfile.logoUrl}
+                  alt="Logo"
+                  className="max-h-12 max-w-[120px] object-contain"
                 />
-                <span className="text-[8px] font-bold uppercase text-black mt-0.5">Scan & Pay</span>
+              ) : (
+                <div className="w-6 h-6" />
+              )}
+            </div>
+
+            {/* Center Shop Details */}
+            <div className="col-span-6 text-center">
+              <h1 className="text-base sm:text-lg font-black uppercase tracking-tight text-black leading-tight">
+                {shopProfile.name}
+              </h1>
+              {shopProfile.tagline && (
+                <p className="text-[10px] font-bold text-black mt-0.5">{shopProfile.tagline}</p>
+              )}
+              <p className="text-[9.5px] text-black mt-0.5">
+                {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
+              </p>
+              <div className="mt-0.5 text-[9.5px] font-black uppercase tracking-wider text-black">
+                — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
               </div>
-            ) : (
-              <div className="w-6 h-6" />
+            </div>
+
+            {/* Right Emblem: Ganesh Ji or Payment QR */}
+            <div className="col-span-3 flex flex-col justify-center items-start pl-2">
+              {headerRightMode === 'ganesh' ? (
+                <GaneshGraphic size={42} isCompact={true} />
+              ) : headerRightMode === 'qr' && (shopProfile.upiId || shopProfile.qrCodeUrl) ? (
+                <div className="flex flex-col items-center">
+                  <PaymentQRCode
+                    upiId={shopProfile.upiId}
+                    shopName={shopProfile.name}
+                    grandTotal={grandTotal}
+                    customQrUrl={shopProfile.qrCodeUrl}
+                    size={48}
+                  />
+                  <span className="text-[7.5px] font-bold uppercase text-black mt-0.5">Scan & Pay</span>
+                </div>
+              ) : (
+                <div className="w-6 h-6" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Customer & Bill Meta Section (Structured, Balanced, Crisp Print Layout) */}
+        <div className="grid grid-cols-12 gap-2 border-y border-black py-1 mb-1.5 items-center">
+          {/* Customer Details: Prominent M/s Name & Address */}
+          <div className="col-span-6 space-y-0.5 pr-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-extrabold text-black uppercase text-[11px] sm:text-xs min-w-[55px]">M/s / To:</span>
+              <span className="font-black text-black text-sm sm:text-base leading-tight truncate">
+                {estimate.customerName || '—'}
+              </span>
+            </div>
+            {estimate.customerAddress && (
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-black text-[10.5px] sm:text-[11.5px] min-w-[55px]">Address:</span>
+                <span className="text-black text-xs sm:text-sm font-semibold leading-tight truncate">
+                  {estimate.customerAddress}
+                </span>
+              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Customer & Bill Meta Section (Clean Straight Lining, No Inner Gray Boxes) */}
-      <div className="grid grid-cols-12 gap-2 border-y border-black py-1.5 mb-2 text-xs">
-        {/* Customer Details */}
-        <div className="col-span-7 space-y-0.5">
-          <div className="flex items-baseline gap-1">
-            <span className="font-extrabold text-black uppercase text-[10px] min-w-[55px]">M/s / To:</span>
-            <span className="font-black text-black text-xs sm:text-sm truncate">
-              {estimate.customerName || '—'}
-            </span>
-          </div>
-          {estimate.customerAddress && (
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-black text-[10px] min-w-[55px]">Address:</span>
-              <span className="text-black text-[11px] truncate">{estimate.customerAddress}</span>
+          {/* Right: Est No, Date & DS in Clean Structured Boxes */}
+          <div className="col-span-6 flex items-center justify-end gap-x-2 text-right border-l border-black pl-2 whitespace-nowrap">
+            {/* Est No */}
+            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
+              <span className="font-bold text-black text-[9.5px] uppercase">Est No:</span>
+              <span className="font-black text-black text-xs sm:text-sm font-mono">{estimate.estimateNumber}</span>
             </div>
-          )}
+
+            {/* Date in dd-mm-yy */}
+            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
+              <span className="font-bold text-black text-[9.5px] uppercase">Date:</span>
+              <span className="font-black text-black text-xs">{formatDateDDMMYY(estimate.date)}</span>
+            </div>
+
+            {/* DS */}
+            <div className="flex items-center gap-1 border border-black bg-white px-2 py-0.5 rounded-xs">
+              <span className="font-bold text-black text-[9.5px] uppercase">DS:</span>
+              <span className="font-black text-black text-xs min-w-[36px] text-center">
+                {estimate.dpName || '—'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Est No, Date & DP (Directly under Date) */}
-        <div className="col-span-5 flex flex-col justify-center items-end space-y-0.5 text-right border-l border-black pl-2">
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="font-bold text-black text-[10px]">Est No:</span>
-            <span className="font-black text-black text-xs font-mono">{estimate.estimateNumber}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="font-bold text-black text-[10px]">Date:</span>
-            <span className="font-bold text-black text-[11px]">{estimate.date}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="font-bold text-black text-[10px]">DP:</span>
-            <span className="text-black text-[11px] font-semibold min-w-[50px] inline-block border-b border-black text-left pl-1">
-              {estimate.dpName || '\u00A0'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Items Table (Includes CFC/Gatte + Qty + Rate + Amount + Padding Rows) */}
-      <table className="w-full border-collapse border border-black mb-2 text-xs">
-        <thead>
-          <tr className="border-b-2 border-black bg-white font-black uppercase text-center text-[10px] sm:text-xs">
-            <th className="border border-black py-1 px-1 w-7">#</th>
-            <th className="border border-black py-1 px-2 text-left">Item Description</th>
-            <th className="border border-black py-1 px-1.5 w-12 text-center">CFC</th>
-            <th className="border border-black py-1 px-1.5 w-16 text-right">Qty</th>
-            <th className="border border-black py-1 px-1.5 w-16 sm:w-20 text-right">Rate</th>
-            <th className="border border-black py-1 px-2 w-20 sm:w-24 text-right">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {estimate.items.map((item, index) => (
-            <tr key={item.id} className="border-b border-black">
-              <td className="border border-black py-1 px-1 text-center font-bold text-[11px]">{index + 1}</td>
-              <td className="border border-black py-1 px-2 font-bold text-[11px] sm:text-xs">
-                {item.description || '—'}
-                {item.caseCount && item.caseCount > 0 && (
-                  <span className="text-[9px] text-black font-normal ml-1">
-                    (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
-                  </span>
-                )}
-              </td>
-              <td className="border border-black py-1 px-1.5 text-center font-semibold text-[11px] text-black">
-                {item.cfc ? `${item.cfc}` : '—'}
-              </td>
-              <td className="border border-black py-1 px-1.5 text-right font-bold text-[11px]">
-                {formatQtyWithUnit(item.qty, item.unit)}
-              </td>
-              <td className="border border-black py-1 px-1.5 text-right font-bold text-[11px]">
-                {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
-              </td>
-              <td className="border border-black py-1 px-2 text-right font-black text-[11px] sm:text-xs">
-                {shopProfile.currencySymbol}{item.amount.toFixed(2)}
-              </td>
+        {/* Items Table */}
+        <table className="w-full border-collapse border border-black mb-1.5">
+          <thead>
+            <tr className="border-b-2 border-black bg-white font-black uppercase text-center text-[10px] sm:text-[11px]">
+              <th className="border border-black py-0.5 px-1 w-7">#</th>
+              <th className="border border-black py-0.5 px-2 text-left">Item Description</th>
+              <th className="border border-black py-0.5 px-1.5 w-12 text-center">CFC</th>
+              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right">Qty</th>
+              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right">Rate</th>
+              <th className="border border-black py-0.5 px-2 w-24 sm:w-28 text-right">Amount</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {estimate.items.map((item, index) => {
+              const itemAmt = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
+              return (
+                <tr key={item.id} className="border-b border-black">
+                  <td className="border border-black py-0.5 px-1 text-center font-bold text-[10.5px]">{index + 1}</td>
+                  <td className="border border-black py-0.5 px-2 font-bold text-xs sm:text-[13px]">
+                    {item.description || '—'}
+                    {item.caseCount && item.caseCount > 0 && (
+                      <span className="text-[9.5px] text-black font-normal ml-1">
+                        (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
+                      </span>
+                    )}
+                  </td>
+                  <td className="border border-black py-0.5 px-1.5 text-center font-semibold text-[11px] text-black">
+                    {item.cfc ? `${item.cfc}` : '—'}
+                  </td>
+                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs">
+                    {formatQtyWithUnit(item.qty, item.unit)}
+                  </td>
+                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs">
+                    {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
+                  </td>
+                  <td className="border border-black py-0.5 px-2 text-right font-black text-xs sm:text-[13px]">
+                    {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Totals, Hindi Terms, Payment QR & Signatures */}
-      <div className="grid grid-cols-12 gap-2 border-t-2 border-black pt-1.5 text-xs">
-        {/* Left Column: Terms + QR Code + In Words */}
-        <div className="col-span-7 flex flex-col justify-between">
-          <div>
-            <p className="font-black uppercase text-[9px] text-black">Terms / Notice:</p>
-            <p className="text-[10px] sm:text-[11px] text-black font-semibold leading-snug mt-0.5">
-              {estimate.notes || shopProfile.defaultTerms}
-            </p>
+      {/* Bottom Part: Totals, Notice & Receiver Signatures */}
+      <div>
+        <div className="grid grid-cols-12 gap-2 border-t-2 border-black pt-1">
+          {/* Left Column: Terms + In Words */}
+          <div className="col-span-7 flex flex-col justify-between">
+            <div>
+              <p className="font-black uppercase text-[8.5px] text-black">Terms / Notice:</p>
+              <p className="text-[9.5px] sm:text-[10.5px] text-black font-semibold leading-tight mt-0.5">
+                {estimate.notes || shopProfile.defaultTerms}
+              </p>
+            </div>
+
+            {grandTotal > 0 && (
+              <div className="mt-1 text-[9.5px] font-bold leading-tight">
+                <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
+              </div>
+            )}
           </div>
 
-          {grandTotal > 0 && (
-            <div className="mt-1.5 text-[10px] font-bold leading-tight">
-              <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
+          {/* Right Column: Calculations */}
+          <div className="col-span-5 space-y-0.5">
+            <div className="flex justify-between py-0.2 border-b border-black font-bold text-xs">
+              <span>Subtotal:</span>
+              <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
             </div>
-          )}
+            {discountVal > 0 && (
+              <div className="flex justify-between py-0.2 border-b border-black text-xs">
+                <span>Discount:</span>
+                <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-xs sm:text-sm">
+              <span>GRAND TOTAL:</span>
+              <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Right Column: Calculations & Signature (Clean Straight Lines) */}
-        <div className="col-span-5 space-y-0.5">
-          <div className="flex justify-between py-0.5 border-b border-black font-bold text-xs">
-            <span>Subtotal:</span>
-            <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
-          </div>
-          {discountVal > 0 && (
-            <div className="flex justify-between py-0.5 border-b border-black text-xs">
-              <span>Discount:</span>
-              <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
+        {/* Dual Signature Section: Receiver Signature (Left) & Authorised Signatory (Right) */}
+        <div className="flex justify-between items-end pt-3 mt-1 border-t border-dashed border-slate-300">
+          <div className="text-center">
+            <div className="border-t border-black w-32 sm:w-40 pt-0.5 font-bold text-[9.5px] sm:text-[10.5px] text-black">
+              Receiver&apos;s Signature
             </div>
-          )}
-          <div className="flex justify-between py-1 border-y-2 border-black font-black text-xs sm:text-sm">
-            <span>GRAND TOTAL:</span>
-            <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+            <div className="text-[8px] text-black">
+              (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="text-[9px] sm:text-[10px] font-bold text-black mb-4 sm:mb-5">
+              For {shopProfile.name}
+            </div>
+            <div className="border-t border-black w-36 sm:w-44 pt-0.5 font-black text-[9.5px] sm:text-[10.5px] text-black">
+              Authorised Signatory
+            </div>
           </div>
         </div>
       </div>

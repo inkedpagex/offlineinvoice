@@ -111,3 +111,19 @@ export function formatQtyWithUnit(
   const u = unit ? ` ${unit}` : '';
   return `${strQty}${u}`;
 }
+
+/**
+ * Formats ISO date 'YYYY-MM-DD' into standard Indian bill format 'DD-MM-YY'
+ * e.g. "2026-09-18" -> "18-09-26"
+ */
+export function formatDateDDMMYY(dateStr?: string): string {
+  if (!dateStr) return '';
+  const clean = dateStr.trim();
+  const match = clean.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  if (match) {
+    const [, yyyy, mm, dd] = match;
+    return `${dd}-${mm}-${yyyy.slice(2)}`;
+  }
+  return clean;
+}
+

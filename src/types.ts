@@ -26,6 +26,8 @@ export interface ShopProfile {
   logoUrl?: string;
   upiId?: string;
   qrCodeUrl?: string;
+  headerRightType?: 'ganesh' | 'qr' | 'none';
+  dsOptions?: string[];
 }
 
 export interface EstimateItem {
@@ -35,7 +37,7 @@ export interface EstimateItem {
   cfc?: number | string;
   qty: number | string;
   rate: number | string;
-  amount: number;
+  amount: number | string;
   unit?: string;
   caseCount?: number;
   looseQty?: number;

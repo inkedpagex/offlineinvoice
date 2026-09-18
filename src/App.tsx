@@ -18,8 +18,9 @@ import { ProductManagementModal } from './components/ProductManagementModal';
 import { EstimateHistoryModal } from './components/EstimateHistoryModal';
 import { PrintPreviewModal } from './components/PrintPreviewModal';
 import { PaymentQRCode } from './components/PaymentQRCode';
+import { GaneshGraphic } from './components/GaneshGraphic';
 import { numberToWords } from './utils/numberToWords';
-import { parsePackaging, calculateQtyFromCfc, calculateCfcFromQty, formatQtyWithUnit } from './utils/cfcHelper';
+import { parsePackaging, calculateQtyFromCfc, calculateCfcFromQty, formatQtyWithUnit, formatDateDDMMYY } from './utils/cfcHelper';
 import defaultProducts from './data/defaultProducts.json';
 
 declare global {
@@ -43,11 +44,13 @@ const DEFAULT_SHOP_PROFILE: ShopProfile = {
   defaultTerms: 'नोट: बिका हुआ माल वापस नहीं होगा। भूल-चूक लेनी-देनी। आपके व्यापार के लिए धन्यवाद!',
   paperFormat: 'A4',
   currencySymbol: '₹',
+  headerRightType: 'ganesh',
+  dsOptions: ['Gautam', 'Viresh', 'Counter Sale'],
 };
 
 const getNextEstimateNumber = (historyList: SavedEstimate[]): string => {
   if (!historyList || historyList.length === 0) {
-    return 'EST-101';
+    return '101';
   }
   let maxNum = 100;
   for (const h of historyList) {
@@ -59,7 +62,7 @@ const getNextEstimateNumber = (historyList: SavedEstimate[]): string => {
       }
     }
   }
-  return `EST-${maxNum + 1}`;
+  return `${maxNum + 1}`;
 };
 
 const getInitialEstimateNumber = (): string => {
@@ -74,7 +77,7 @@ const getInitialEstimateNumber = (): string => {
   } catch (e) {
     console.error('Failed to parse history for estimate number', e);
   }
-  return 'EST-101';
+  return '101';
 };
 
 export const App: React.FC = () => {
@@ -136,6 +139,9 @@ export const App: React.FC = () => {
       try {
         const parsed = JSON.parse(savedDraft);
         if (parsed && parsed.items && parsed.items.length > 0) {
+          if (parsed.estimateNumber && typeof parsed.estimateNumber === 'string' && parsed.estimateNumber.startsWith('EST-')) {
+            parsed.estimateNumber = parsed.estimateNumber.replace(/^EST-?/i, '');
+          }
           return parsed;
         }
       } catch (e) {
@@ -160,6 +166,7 @@ export const App: React.FC = () => {
   const itemCfcRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const itemQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const itemRateRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const itemAmountRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
 
   // Hydrate from permanent electron disk database on startup
@@ -191,7 +198,9 @@ export const App: React.FC = () => {
               (!draft.items || draft.items.every((i: any) => !i.description?.trim() && !i.rate));
 
             if (isDraftEmpty && historyList.length === 0) {
-              draft.estimateNumber = 'EST-101';
+              draft.estimateNumber = '101';
+            } else if (draft.estimateNumber && typeof draft.estimateNumber === 'string' && draft.estimateNumber.startsWith('EST-')) {
+              draft.estimateNumber = draft.estimateNumber.replace(/^EST-?/i, '');
             }
             setEstimate(draft);
             localStorage.setItem('active_draft_estimate', JSON.stringify(draft));
@@ -224,7 +233,10 @@ export const App: React.FC = () => {
   };
 
   // Calculations
-  const subtotal = estimate.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const subtotal = estimate.items.reduce((sum, item) => {
+    const num = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
+    return sum + num;
+  }, 0);
   const discountVal = typeof estimate.discount === 'number' ? estimate.discount : 0;
   const grandTotal = Math.max(0, subtotal - discountVal);
   const totalInWords = numberToWords(grandTotal);
@@ -232,7 +244,7 @@ export const App: React.FC = () => {
   // Automatically save current estimate to local history database
   const saveCurrentEstimateToHistory = () => {
     const hasContent =
-      estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0)) ||
+      estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0) || (typeof i.amount === 'number' && i.amount > 0)) ||
       estimate.customerName.trim() !== '';
 
     if (!hasContent) return;
@@ -268,10 +280,10 @@ export const App: React.FC = () => {
     });
   };
 
-  // Handlers for Items (Clean string handling with smart CFC <-> Qty conversion & DP)
+  // Handlers for Items (Clean string handling with smart CFC <-> Qty conversion, DP & direct editable Amount)
   const handleItemChange = (
     id: string,
-    field: keyof Omit<EstimateItem, 'id' | 'amount'>,
+    field: keyof Omit<EstimateItem, 'id'>,
     value: string
   ) => {
     setEstimate((prev) => {
@@ -281,6 +293,7 @@ export const App: React.FC = () => {
         let newCfc: number | string = item.cfc || '';
         let newQty: number | string = item.qty;
         let newRate: number | string = item.rate;
+        let newAmt: number | string = item.amount;
         let newDesc = item.description;
         let newDp = item.dp || '';
         let newUnit = item.unit;
@@ -301,6 +314,9 @@ export const App: React.FC = () => {
               newQty = calculatedQty;
             }
           }
+          const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(String(newQty)) || 0);
+          const numericRate = typeof newRate === 'number' ? newRate : (parseFloat(String(newRate)) || 0);
+          newAmt = Math.round(numericQty * numericRate * 100) / 100;
         } else if (field === 'qty') {
           newQty = value;
           // Auto-calculate CFC from Qty if product has caseCount
@@ -308,15 +324,24 @@ export const App: React.FC = () => {
             const { cfc } = calculateCfcFromQty(value, caseCount);
             newCfc = cfc;
           }
+          const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(String(newQty)) || 0);
+          const numericRate = typeof newRate === 'number' ? newRate : (parseFloat(String(newRate)) || 0);
+          newAmt = Math.round(numericQty * numericRate * 100) / 100;
         } else if (field === 'rate') {
           newRate = value;
+          const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(String(newQty)) || 0);
+          const numericRate = typeof newRate === 'number' ? newRate : (parseFloat(String(newRate)) || 0);
+          newAmt = Math.round(numericQty * numericRate * 100) / 100;
+        } else if (field === 'amount') {
+          newAmt = value;
+          const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(String(newQty)) || 0);
+          const numericAmt = typeof newAmt === 'number' ? newAmt : (parseFloat(String(newAmt)) || 0);
+          if (numericQty > 0 && value !== '') {
+            newRate = Math.round((numericAmt / numericQty) * 100) / 100;
+          }
         } else if (field === 'unit') {
           newUnit = value;
         }
-
-        const numericQty = typeof newQty === 'number' ? newQty : (parseFloat(newQty) || 0);
-        const numericRate = typeof newRate === 'number' ? newRate : (parseFloat(newRate) || 0);
-        const calculatedAmount = Math.round(numericQty * numericRate * 100) / 100;
 
         return {
           ...item,
@@ -325,12 +350,55 @@ export const App: React.FC = () => {
           cfc: newCfc,
           qty: newQty,
           rate: newRate,
-          amount: calculatedAmount,
+          amount: newAmt,
           unit: newUnit,
         };
       });
 
       return { ...prev, items: updatedItems };
+    });
+  };
+
+  // Quick Add Product from Catalog Modal directly into active estimate
+  const handleAddProductFromCatalog = (product: Product) => {
+    const parsed = parsePackaging(product.packaging);
+    const itemUnit = product.unit || parsed.unit || 'PAC';
+    const itemCaseCount = product.caseCount !== undefined ? product.caseCount : parsed.caseCount;
+
+    let initialCfc: number | string = itemCaseCount && itemCaseCount > 0 ? 1 : '';
+    let initialQty: number | string = itemCaseCount && itemCaseCount > 0 ? itemCaseCount : 1;
+    const numericQty = typeof initialQty === 'number' ? initialQty : (parseFloat(String(initialQty)) || 1);
+    const calcAmount = Math.round(numericQty * product.rate * 100) / 100;
+
+    setEstimate((prev) => {
+      const isFirstItemEmpty =
+        prev.items.length === 1 &&
+        !prev.items[0].description.trim() &&
+        !prev.items[0].rate;
+
+      const newItem: EstimateItem = {
+        id: Date.now().toString(),
+        description: product.name,
+        dp: prev.dpName || '',
+        cfc: initialCfc,
+        qty: initialQty,
+        rate: product.rate,
+        amount: calcAmount,
+        unit: itemUnit,
+        caseCount: itemCaseCount,
+      };
+
+      if (isFirstItemEmpty) {
+        return {
+          ...prev,
+          items: [newItem],
+        };
+      } else {
+        return {
+          ...prev,
+          items: [...prev.items, newItem],
+        };
+      }
     });
   };
 
@@ -420,8 +488,17 @@ export const App: React.FC = () => {
     }));
   };
 
-  // Keyboard shortcut: Press Enter on Rate to add next row or jump to next row
-  const handleRateKeyDown = (e: React.KeyboardEvent, index: number) => {
+  // Keyboard shortcut: Press Enter on Rate to focus Amount
+  const handleRateKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      itemAmountRefs.current[id]?.focus();
+      itemAmountRefs.current[id]?.select();
+    }
+  };
+
+  // Keyboard shortcut: Press Enter on Amount to jump to next row or add row
+  const handleAmountKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (index === estimate.items.length - 1) {
@@ -579,7 +656,7 @@ export const App: React.FC = () => {
       const maxHistoryNum = sorted.reduce((max, h) => Math.max(max, getEstNumberVal(h.estimateNumber)), 100);
       const nextNum = Math.max(curNum, maxHistoryNum) + 1;
       setEstimate({
-        estimateNumber: `EST-${nextNum}`,
+        estimateNumber: `${nextNum}`,
         date: new Date().toISOString().split('T')[0],
         customerName: '',
         customerAddress: '',
@@ -598,13 +675,13 @@ export const App: React.FC = () => {
       estimate.items.some((i) => i.description.trim() !== '' || (typeof i.rate === 'number' && i.rate > 0)) ||
       estimate.customerName.trim() !== '';
 
-    let nextEstNumber = 'EST-101';
+    let nextEstNumber = '101';
 
     if (hasContent) {
       saveCurrentEstimateToHistory();
       const match = estimate.estimateNumber.match(/\d+$/);
       const currentCounter = match ? parseInt(match[0], 10) : 100;
-      nextEstNumber = `EST-${currentCounter + 1}`;
+      nextEstNumber = `${currentCounter + 1}`;
     } else {
       nextEstNumber = getNextEstimateNumber(history);
     }
@@ -645,7 +722,7 @@ export const App: React.FC = () => {
 
       setTimeout(() => {
         setEstimate({
-          estimateNumber: `EST-${nextCounter}`,
+          estimateNumber: `${nextCounter}`,
           date: new Date().toISOString().split('T')[0],
           customerName: '',
           customerAddress: '',
@@ -778,184 +855,224 @@ export const App: React.FC = () => {
   }, [estimate, history, isProductsOpen, isSettingsOpen, isHistoryOpen, isPreviewOpen]);
 
   // Reusable Single Copy for 2-in-1 Print Rendering (Clean Simple Lining, Zero Page Waste)
-  const renderPrintCopy = (copyType: 'ORIGINAL' | 'DUPLICATE') => (
-    <div className="copy-half-sheet bg-white text-black p-2.5 text-[10.5px] leading-tight flex flex-col justify-between border-2 border-black">
-      {/* Top Part: Header + Customer Details */}
-      <div>
-        {/* Top Copy Tag: Original / Duplicate Marker (No overlap with QR) */}
-        {copyType && (
-          <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1 text-black">
-            <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
-            <span className="font-mono text-[8px] text-black">ESTIMATE</span>
-          </div>
-        )}
+  const renderPrintCopy = (copyType: 'ORIGINAL' | 'DUPLICATE') => {
+    const headerRightMode = shopProfile.headerRightType || 'ganesh';
 
-        {/* Header (Left Logo | Center Shop Details | Right Payment QR) */}
-        <div className="border-b-2 border-black pb-1 mb-1.5">
-          <div className="grid grid-cols-12 items-center gap-1.5">
-            {/* Left: Shop Logo (Bigger & closer to shop name) */}
-            <div className="col-span-3 flex justify-end items-center pr-2">
-              {shopProfile.logoUrl ? (
-                <img
-                  src={shopProfile.logoUrl}
-                  alt="Logo"
-                  className="max-h-14 max-w-[125px] object-contain"
-                />
-              ) : (
-                <div className="w-6 h-6" />
-              )}
+    return (
+      <div className="copy-half-sheet bg-white text-black p-2 text-[10px] leading-tight flex flex-col justify-between border-2 border-black">
+        {/* Top Part: Header + Customer Details */}
+        <div>
+          {/* Top Copy Tag: Original / Duplicate Marker */}
+          {copyType && (
+            <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1 text-black">
+              <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
+              <span className="font-mono text-[8px] text-black">ESTIMATE</span>
             </div>
+          )}
 
-            {/* Center: Shop Info */}
-            <div className="col-span-6 text-center">
-              <h1 className="text-base font-black uppercase tracking-tight text-black leading-tight">
-                {shopProfile.name}
-              </h1>
-              {shopProfile.tagline && (
-                <p className="text-[9px] font-bold text-black mt-0.5">{shopProfile.tagline}</p>
-              )}
-              <p className="text-[8.5px] text-black mt-0.5">
-                {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
-              </p>
-              <div className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-black">
-                — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
-              </div>
-            </div>
-
-            {/* Right: Payment QR Code (Closer to shop info) */}
-            <div className="col-span-3 flex flex-col justify-center items-start pl-2">
-              {(shopProfile.upiId || shopProfile.qrCodeUrl) ? (
-                <div className="flex flex-col items-center">
-                  <PaymentQRCode
-                    upiId={shopProfile.upiId}
-                    shopName={shopProfile.name}
-                    grandTotal={grandTotal}
-                    customQrUrl={shopProfile.qrCodeUrl}
-                    size={46}
+          {/* Header (Left Logo | Center Shop Details | Right Ganesh Ji / Payment QR) */}
+          <div className="border-b-2 border-black pb-1 mb-1">
+            <div className="grid grid-cols-12 items-center gap-1">
+              {/* Left: Shop Logo */}
+              <div className="col-span-3 flex justify-end items-center pr-2">
+                {shopProfile.logoUrl ? (
+                  <img
+                    src={shopProfile.logoUrl}
+                    alt="Logo"
+                    className="max-h-11 max-w-[100px] object-contain"
                   />
-                  <span className="text-[7px] font-bold uppercase text-black">Scan & Pay</span>
+                ) : (
+                  <div className="w-4 h-4" />
+                )}
+              </div>
+
+              {/* Center: Shop Info */}
+              <div className="col-span-6 text-center">
+                <h1 className="text-base font-black uppercase tracking-tight text-black leading-tight">
+                  {shopProfile.name}
+                </h1>
+                {shopProfile.tagline && (
+                  <p className="text-[9px] font-bold text-black mt-0.5">{shopProfile.tagline}</p>
+                )}
+                <p className="text-[8.5px] text-black mt-0.5">
+                  {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
+                </p>
+                <div className="mt-0.5 text-[8.5px] font-black uppercase tracking-wider text-black">
+                  — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
                 </div>
-              ) : (
-                <div className="w-6 h-6" />
+              </div>
+
+              {/* Right: Lord Ganesh Ji Emblem (Default) OR Payment QR */}
+              <div className="col-span-3 flex flex-col justify-center items-start pl-2">
+                {headerRightMode === 'ganesh' ? (
+                  <GaneshGraphic size={36} isCompact={true} />
+                ) : headerRightMode === 'qr' && (shopProfile.upiId || shopProfile.qrCodeUrl) ? (
+                  <div className="flex flex-col items-center">
+                    <PaymentQRCode
+                      upiId={shopProfile.upiId}
+                      shopName={shopProfile.name}
+                      grandTotal={grandTotal}
+                      customQrUrl={shopProfile.qrCodeUrl}
+                      size={40}
+                    />
+                    <span className="text-[6.5px] font-bold uppercase text-black">Scan & Pay</span>
+                  </div>
+                ) : (
+                  <div className="w-4 h-4" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Customer & Bill Meta Section (Structured, Balanced, Crisp Print Layout) */}
+          <div className="grid grid-cols-12 gap-1.5 border-y border-black py-1 mb-1 text-[10px] items-center">
+            {/* Left: Customer Info (Prominent Name + Address) */}
+            <div className="col-span-6 space-y-0.5 pr-1">
+              <div className="flex items-baseline gap-1">
+                <span className="font-extrabold text-black uppercase text-[10px] min-w-[50px]">M/s / To:</span>
+                <span className="font-black text-black text-xs sm:text-[13px] leading-tight truncate">
+                  {estimate.customerName || '—'}
+                </span>
+              </div>
+              {estimate.customerAddress && (
+                <div className="flex items-baseline gap-1">
+                  <span className="font-bold text-black text-[9.5px] min-w-[50px]">Address:</span>
+                  <span className="text-black text-[10.5px] sm:text-[11px] font-semibold leading-tight truncate">
+                    {estimate.customerAddress}
+                  </span>
+                </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Customer & Bill Meta (Clean Straight Lining with DP under Date) */}
-        <div className="grid grid-cols-12 gap-1.5 border-y border-black py-1 mb-1.5 text-[10px]">
-          <div className="col-span-7 space-y-0.5">
-            <div className="flex items-baseline gap-1">
-              <span className="font-extrabold text-black uppercase text-[9px] min-w-[50px]">M/s / To:</span>
-              <span className="font-black text-black text-xs truncate">
-                {estimate.customerName || '—'}
-              </span>
-            </div>
-            {estimate.customerAddress && (
-              <div className="flex items-baseline gap-1">
-                <span className="font-bold text-black text-[9px] min-w-[50px]">Address:</span>
-                <span className="text-black text-[10px] truncate">{estimate.customerAddress}</span>
+            {/* Right: Est No, Date & DS in Clean Structured Boxes */}
+            <div className="col-span-6 flex items-center justify-end gap-x-1.5 text-right border-l border-black pl-2 whitespace-nowrap">
+              {/* Est No */}
+              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
+                <span className="font-bold text-black text-[8.5px] uppercase">Est No:</span>
+                <span className="font-black text-black text-[10px] font-mono">{estimate.estimateNumber}</span>
               </div>
-            )}
+
+              {/* Date in dd-mm-yy */}
+              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
+                <span className="font-bold text-black text-[8.5px] uppercase">Date:</span>
+                <span className="font-black text-black text-[9.5px]">{formatDateDDMMYY(estimate.date)}</span>
+              </div>
+
+              {/* DS */}
+              <div className="flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 rounded-xs">
+                <span className="font-bold text-black text-[8.5px] uppercase">DS:</span>
+                <span className="font-bold text-black text-[9.5px] min-w-[32px] text-center">
+                  {estimate.dpName || '—'}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Est No, Date & DP (Directly under Date) */}
-          <div className="col-span-5 flex flex-col justify-center items-end space-y-0.5 text-right border-l border-black pl-1.5">
-            <div className="flex items-center gap-1 text-[10px]">
-              <span className="font-bold text-black text-[9px]">Est No:</span>
-              <span className="font-black text-black text-[11px] font-mono">{estimate.estimateNumber}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[10px]">
-              <span className="font-bold text-black text-[9px]">Date:</span>
-              <span className="font-bold text-black text-[10px]">{estimate.date}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[9px]">
-              <span className="font-bold text-black text-[8.5px]">DP:</span>
-              <span className="text-black text-[9.5px] font-semibold min-w-[50px] inline-block border-b border-black text-left pl-1">
-                {estimate.dpName || '\u00A0'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Table (Includes CFC Column + Padding Rows to prevent page waste) */}
-        <table className="w-full border-collapse border border-black mb-1.5 text-[10px]">
-          <thead>
-            <tr className="border-b border-black bg-white font-black uppercase text-center text-[9px]">
-              <th className="border border-black py-0.5 px-1 w-6">#</th>
-              <th className="border border-black py-0.5 px-1.5 text-left">Item Description</th>
-              <th className="border border-black py-0.5 px-1 w-12 text-center">CFC</th>
-              <th className="border border-black py-0.5 px-1 w-12 text-right">Qty</th>
-              <th className="border border-black py-0.5 px-1 w-14 text-right">Rate</th>
-              <th className="border border-black py-0.5 px-1.5 w-16 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {estimate.items.map((item, index) => (
-              <tr key={item.id} className="border-b border-black">
-                <td className="border border-black py-0.5 px-1 text-center font-bold text-[9px]">{index + 1}</td>
-                <td className="border border-black py-0.5 px-1.5 font-bold text-[10px]">
-                  {item.description || '—'}
-                  {item.caseCount && item.caseCount > 0 && (
-                    <span className="text-[8px] text-black font-normal ml-1">
-                      (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
-                    </span>
-                  )}
-                </td>
-                <td className="border border-black py-0.5 px-1 text-center font-semibold text-[9px] text-black">
-                  {item.cfc ? `${item.cfc}` : '—'}
-                </td>
-                <td className="border border-black py-0.5 px-1 text-right font-bold text-[10px]">
-                  {formatQtyWithUnit(item.qty, item.unit)}
-                </td>
-                <td className="border border-black py-0.5 px-1 text-right font-bold text-[10px]">
-                  {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
-                </td>
-                <td className="border border-black py-0.5 px-1.5 text-right font-black text-[10px]">
-                  {shopProfile.currencySymbol}{item.amount.toFixed(2)}
-                </td>
+          {/* Table */}
+          <table className="w-full border-collapse border border-black mb-1 text-[9.5px]">
+            <thead>
+              <tr className="border-b border-black bg-white font-black uppercase text-center text-[9px]">
+                <th className="border border-black py-0.5 px-1 w-6">#</th>
+                <th className="border border-black py-0.5 px-1.5 text-left">Item Description</th>
+                <th className="border border-black py-0.5 px-1 w-11 text-center">CFC</th>
+                <th className="border border-black py-0.5 px-1 w-16 text-right">Qty</th>
+                <th className="border border-black py-0.5 px-1 w-16 text-right">Rate</th>
+                <th className="border border-black py-0.5 px-1.5 w-20 text-right">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Bottom Part: Totals & Hindi Notice */}
-      <div className="grid grid-cols-12 gap-1.5 border-t border-black pt-1 text-[10px]">
-        <div className="col-span-7 flex flex-col justify-between">
-          <div>
-            <p className="font-black uppercase text-[8px] text-black">Terms / Notice:</p>
-            <p className="text-[9px] text-black font-semibold leading-tight mt-0.5">
-              {estimate.notes || shopProfile.defaultTerms}
-            </p>
-          </div>
-
-          {grandTotal > 0 && (
-            <div className="mt-1 text-[9px] font-bold leading-tight">
-              <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
-            </div>
-          )}
+            </thead>
+            <tbody>
+              {estimate.items.map((item, index) => {
+                const itemAmt = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
+                return (
+                  <tr key={item.id} className="border-b border-black">
+                    <td className="border border-black py-0.5 px-1 text-center font-bold text-[9px]">{index + 1}</td>
+                    <td className="border border-black py-0.5 px-1.5 font-bold text-[10px] sm:text-[11px]">
+                      {item.description || '—'}
+                      {item.caseCount && item.caseCount > 0 && (
+                        <span className="text-[8px] text-black font-normal ml-1">
+                          (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
+                        </span>
+                      )}
+                    </td>
+                    <td className="border border-black py-0.5 px-1 text-center font-semibold text-[9px] text-black">
+                      {item.cfc ? `${item.cfc}` : '—'}
+                    </td>
+                    <td className="border border-black py-0.5 px-1 text-right font-bold text-[9.5px]">
+                      {formatQtyWithUnit(item.qty, item.unit)}
+                    </td>
+                    <td className="border border-black py-0.5 px-1 text-right font-bold text-[9.5px]">
+                      {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
+                    </td>
+                    <td className="border border-black py-0.5 px-1.5 text-right font-black text-[10px] sm:text-[10.5px]">
+                      {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        <div className="col-span-5 space-y-0.5">
-          <div className="flex justify-between py-0.2 border-b border-black font-bold text-[10px]">
-            <span>Subtotal:</span>
-            <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
-          </div>
-          {discountVal > 0 && (
-            <div className="flex justify-between py-0.2 border-b border-black text-[10px]">
-              <span>Discount:</span>
-              <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
+        {/* Bottom Part: Totals, Notice & Receiver Signatures */}
+        <div>
+          <div className="grid grid-cols-12 gap-1 border-t border-black pt-0.5 text-[9.5px]">
+            <div className="col-span-7 flex flex-col justify-between">
+              <div>
+                <p className="font-black uppercase text-[8px] text-black">Terms / Notice:</p>
+                <p className="text-[8.5px] text-black font-semibold leading-tight mt-0.5">
+                  {estimate.notes || shopProfile.defaultTerms}
+                </p>
+              </div>
+
+              {grandTotal > 0 && (
+                <div className="mt-0.5 text-[8.5px] font-bold leading-tight">
+                  <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
+                </div>
+              )}
             </div>
-          )}
-          <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-[11px]">
-            <span>TOTAL:</span>
-            <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+
+            <div className="col-span-5 space-y-0.2">
+              <div className="flex justify-between py-0.2 border-b border-black font-bold text-[9px]">
+                <span>Subtotal:</span>
+                <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
+              </div>
+              {discountVal > 0 && (
+                <div className="flex justify-between py-0.2 border-b border-black text-[9px]">
+                  <span>Discount:</span>
+                  <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-[10.5px]">
+                <span>TOTAL:</span>
+                <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dual Signature Block */}
+          <div className="flex justify-between items-end pt-2 mt-0.5 border-t border-dashed border-black">
+            <div className="text-center">
+              <div className="border-t border-black w-28 sm:w-32 pt-0.5 font-bold text-[8.5px] text-black">
+                Receiver&apos;s Signature
+              </div>
+              <div className="text-[7.5px] text-black">
+                (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+              </div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-[8px] font-bold text-black mb-3">
+                For {shopProfile.name}
+              </div>
+              <div className="border-t border-black w-32 sm:w-36 pt-0.5 font-black text-[8.5px] text-black">
+                Authorised Signatory
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div
@@ -1167,9 +1284,11 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right: Payment QR Code (Closer to shop name) */}
+              {/* Right: Lord Ganesh Ji Emblem (Default) OR Payment QR */}
               <div className="col-span-3 flex flex-col justify-center items-start pl-3">
-                {(shopProfile.upiId || shopProfile.qrCodeUrl) ? (
+                {(shopProfile.headerRightType || 'ganesh') === 'ganesh' ? (
+                  <GaneshGraphic size={54} />
+                ) : shopProfile.headerRightType === 'qr' && (shopProfile.upiId || shopProfile.qrCodeUrl) ? (
                   <div className="flex flex-col items-center">
                     <PaymentQRCode
                       upiId={shopProfile.upiId}
@@ -1190,11 +1309,11 @@ export const App: React.FC = () => {
           </div>
 
           {/* Estimate Meta & Customer Section (Clean Simple Straight Lining - No Outer/Inner Boxes) */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 border-y border-black py-2 mb-2 bg-white text-xs sm:text-sm">
-            {/* Left: Customer Info (Name + Address + Contact) */}
-            <div className="sm:col-span-7 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 border-y border-black py-2 mb-2 bg-white text-xs sm:text-sm">
+            {/* Left: Customer Info (Prominent Name + Address) */}
+            <div className="sm:col-span-6 space-y-1">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-black min-w-[65px] text-xs sm:text-sm">M/s / To:</span>
+                <span className="font-extrabold text-black min-w-[65px] text-xs sm:text-sm uppercase">M/s / To:</span>
                 <input
                   type="text"
                   placeholder="Customer / Party Name"
@@ -1202,7 +1321,7 @@ export const App: React.FC = () => {
                   onChange={(e) =>
                     setEstimate({ ...estimate, customerName: e.target.value })
                   }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1 py-0.5 h-6 font-black text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0"
+                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 font-black text-black text-sm sm:text-base focus:outline-none print:border-none print:p-0"
                 />
               </div>
 
@@ -1215,47 +1334,70 @@ export const App: React.FC = () => {
                   onChange={(e) =>
                     setEstimate({ ...estimate, customerAddress: e.target.value })
                   }
-                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1 py-0.5 h-6 text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0 font-medium"
+                  className="w-full bg-white border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black px-1.5 py-0.5 h-7 text-black text-xs sm:text-sm focus:outline-none print:border-none print:p-0 font-bold"
                 />
               </div>
             </div>
 
-            {/* Right: Estimate No, Date & DP (Directly under Date) */}
-            <div className="sm:col-span-5 flex flex-col justify-center items-start sm:items-end space-y-1 sm:border-l sm:border-black sm:pl-4">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black text-xs sm:text-sm">Est No:</span>
+            {/* Right: Estimate No, Date & DS with clean structured cards and DS 1-click select */}
+            <div className="sm:col-span-6 flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:border-l sm:border-black sm:pl-3">
+              {/* Est No Card */}
+              <div className="flex items-center bg-slate-50 border border-black rounded px-2 py-1 shadow-2xs">
+                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">Est No:</span>
                 <input
                   type="text"
                   value={estimate.estimateNumber}
                   onChange={(e) =>
                     setEstimate({ ...estimate, estimateNumber: e.target.value })
                   }
-                  className="w-24 font-black text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none font-mono text-left"
+                  className="w-14 font-black text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none font-mono text-left"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black text-xs sm:text-sm">Date:</span>
+              {/* Date Card */}
+              <div className="flex items-center bg-slate-50 border border-black rounded px-2 py-1 shadow-2xs">
+                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">Date:</span>
                 <input
                   type="date"
                   value={estimate.date}
                   onChange={(e) => setEstimate({ ...estimate, date: e.target.value })}
-                  className="w-28 font-bold text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none text-left"
+                  className="w-32 font-bold text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none text-left cursor-pointer"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-black text-xs sm:text-sm">DP:</span>
-                <input
-                  type="text"
-                  placeholder="—"
+              {/* DS Dropdown Selector Card */}
+              <div className="flex items-center bg-slate-50 border border-black rounded px-2.5 py-1 shadow-2xs">
+                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">DS:</span>
+                <select
                   value={estimate.dpName || ''}
-                  onChange={(e) =>
-                    setEstimate({ ...estimate, dpName: e.target.value })
-                  }
-                  className="w-28 font-semibold text-black text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 sm:border-transparent hover:border-black focus:border-black focus:outline-none text-left"
-                  title="DP (Delivery Person / Dispatch Party / Dealer Point)"
-                />
+                  onChange={(e) => {
+                    if (e.target.value === '__add_custom__') {
+                      const customName = window.prompt('Enter custom DS / Salesperson name:');
+                      if (customName && customName.trim()) {
+                        setEstimate({ ...estimate, dpName: customName.trim() });
+                      }
+                    } else {
+                      setEstimate({ ...estimate, dpName: e.target.value });
+                    }
+                  }}
+                  className="font-bold text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none cursor-pointer pr-1 text-slate-900"
+                  title="Select DS (Dispatch / Salesperson / Counter)"
+                >
+                  <option value="">— Select DS —</option>
+                  {(shopProfile.dsOptions && shopProfile.dsOptions.length > 0
+                    ? shopProfile.dsOptions
+                    : ['Gautam', 'Viresh', 'Counter Sale']
+                  ).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                  {estimate.dpName &&
+                    !(shopProfile.dsOptions || ['Gautam', 'Viresh', 'Counter Sale']).includes(estimate.dpName) && (
+                      <option value={estimate.dpName}>{estimate.dpName}</option>
+                    )}
+                  <option value="__add_custom__">+ Other / Custom Name...</option>
+                </select>
               </div>
             </div>
           </div>
@@ -1267,10 +1409,10 @@ export const App: React.FC = () => {
                 <tr className="bg-white text-black border-y-2 border-black font-black uppercase text-xs tracking-wider">
                   <th className="py-1.5 px-1.5 text-center w-8">#</th>
                   <th className="py-1.5 px-2 text-left">Item Description</th>
-                  <th className="py-1.5 px-1 text-center w-16">CFC</th>
-                  <th className="py-1.5 px-1.5 text-right w-16">Qty</th>
-                  <th className="py-1.5 px-1.5 text-right w-20">Rate</th>
-                  <th className="py-1.5 px-2 text-right w-24">Amount</th>
+                  <th className="py-1.5 px-1 text-center w-14 sm:w-16">CFC</th>
+                  <th className="py-1.5 px-1.5 text-right w-24 sm:w-28">Qty</th>
+                  <th className="py-1.5 px-1.5 text-right w-24 sm:w-28">Rate</th>
+                  <th className="py-1.5 px-2 text-right w-28 sm:w-32">Amount</th>
                   <th className="py-1.5 px-1 text-center w-8 no-print"></th>
                 </tr>
               </thead>
@@ -1441,7 +1583,7 @@ export const App: React.FC = () => {
 
                       {/* Qty Column with Unit Badge */}
                       <td className="py-1 px-1.5 text-right">
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center justify-end gap-1">
                           <input
                             ref={(el) => (itemQtyRefs.current[item.id] = el)}
                             type="text"
@@ -1458,10 +1600,10 @@ export const App: React.FC = () => {
                                 itemRateRefs.current[item.id]?.select();
                               }
                             }}
-                            className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
+                            className="w-full min-w-0 text-right bg-transparent px-1.5 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
                           />
                           {item.unit && (
-                            <span className="text-[10px] text-slate-500 font-bold uppercase ml-1 select-none flex-shrink-0 no-print">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase select-none flex-shrink-0 no-print">
                               {item.unit}
                             </span>
                           )}
@@ -1479,15 +1621,29 @@ export const App: React.FC = () => {
                           onChange={(e) =>
                             handleItemChange(item.id, 'rate', e.target.value)
                           }
-                          onKeyDown={(e) => handleRateKeyDown(e, index)}
+                          onKeyDown={(e) => handleRateKeyDown(e, item.id)}
                           className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-bold text-black tabular-nums print:p-0 text-xs sm:text-sm"
                         />
                       </td>
 
-                      {/* Calculated Amount Column */}
-                      <td className="py-1 px-2 text-right font-black text-black tabular-nums text-xs sm:text-sm">
-                        {shopProfile.currencySymbol}
-                        {item.amount.toFixed(2)}
+                      {/* Directly Editable Amount Column */}
+                      <td className="py-1 px-1.5 text-right">
+                        <div className="flex items-center justify-end">
+                          <span className="text-black font-bold text-xs mr-0.5 select-none">{shopProfile.currencySymbol}</span>
+                          <input
+                            ref={(el) => (itemAmountRefs.current[item.id] = el)}
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0.00"
+                            value={item.amount !== undefined && item.amount !== null ? item.amount : ''}
+                            onChange={(e) =>
+                              handleItemChange(item.id, 'amount', e.target.value)
+                            }
+                            onKeyDown={(e) => handleAmountKeyDown(e, index)}
+                            className="w-full text-right bg-transparent px-1 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black font-black text-black tabular-nums print:p-0 text-xs sm:text-sm"
+                            title="Line Amount (editable directly)"
+                          />
+                        </div>
                       </td>
 
                       {/* Delete Row Action */}
@@ -1516,7 +1672,7 @@ export const App: React.FC = () => {
               <Plus className="w-3.5 h-3.5" />
               <span>+ Add Item</span>
               <span className="text-[10px] text-slate-500 font-medium ml-1">
-                (Enter on Rate)
+                (Enter on Amount)
               </span>
             </button>
           </div>
@@ -1590,10 +1746,28 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Footer Note (Authentic B&W Format) */}
-          <div className="mt-3 pt-2 border-t border-black flex items-center justify-between text-xs text-black">
-            <div className="text-[10px] text-black italic">
+          {/* Dual Signature Section (Receiver on Left, Shop Authorised on Right) */}
+          <div className="mt-4 pt-3 border-t border-dashed border-slate-300 print:border-black flex items-end justify-between text-xs text-black">
+            <div className="text-center">
+              <div className="border-t border-black w-36 sm:w-44 pt-1 font-bold text-[10px] sm:text-xs text-black">
+                Receiver&apos;s Signature
+              </div>
+              <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 print:text-black mt-0.5">
+                (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+              </div>
+            </div>
+
+            <div className="text-[10px] text-black italic hidden sm:block">
               * E. & O.E. (भूल-चूक लेनी-देनी)
+            </div>
+
+            <div className="text-center">
+              <div className="text-[9.5px] sm:text-[10.5px] font-bold text-black mb-5 sm:mb-6">
+                For {shopProfile.name}
+              </div>
+              <div className="border-t border-black w-36 sm:w-48 pt-1 font-black text-[10px] sm:text-xs text-black">
+                Authorised Signatory
+              </div>
             </div>
           </div>
         </div>
@@ -1642,6 +1816,7 @@ export const App: React.FC = () => {
         products={products}
         onSaveProducts={handleSaveProducts}
         currencySymbol={shopProfile.currencySymbol}
+        onAddProductToEstimate={handleAddProductFromCatalog}
       />
 
       {/* Estimate History Modal */}
