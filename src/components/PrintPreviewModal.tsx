@@ -4,7 +4,13 @@ import { ShopProfile, ActiveEstimate, PaperFormat } from '../types';
 import { numberToWords } from '../utils/numberToWords';
 import { PaymentQRCode } from './PaymentQRCode';
 import { GaneshGraphic } from './GaneshGraphic';
-import { formatQtyWithUnit, formatDateDDMMYY } from '../utils/cfcHelper';
+import {
+  formatQtyWithUnit,
+  formatDateDDMMYY,
+  getNamePrintFontSizeClass,
+  getAddressPrintFontSizeClass,
+  getDatePrintFontSizeClass,
+} from '../utils/cfcHelper';
 
 interface Props {
   isOpen: boolean;
@@ -113,17 +119,17 @@ export const PrintPreviewModal: React.FC<Props> = ({
             </div>
             <div className="flex items-baseline gap-1">
               <span className="font-bold text-black text-[10px] uppercase">Date:</span>
-              <span className="font-black text-black text-xs">{formatDateDDMMYY(estimate.date)}</span>
+              <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>{formatDateDDMMYY(estimate.date)}</span>
             </div>
           </div>
         </div>
 
-        {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
+        {/* Customer Details: Full Width Maximum Space + Dynamic Bold Fonts */}
         <div className="border-b border-black pb-1.5 mb-1.5 text-xs space-y-1">
           {/* Row 1: Name (100% Full Width) */}
           <div className="flex items-baseline gap-2 w-full">
             <span className="font-black text-black uppercase text-xs min-w-[50px]">Name:</span>
-            <span className="font-black text-black text-sm sm:text-base leading-tight flex-1 border-b border-dotted border-black pb-0.5">
+            <span className={`leading-tight flex-1 border-b border-dotted border-black pb-0.5 text-black ${getNamePrintFontSizeClass(shopProfile.customerNameFontSize)}`}>
               {estimate.customerName || '—'}
             </span>
           </div>
@@ -132,7 +138,7 @@ export const PrintPreviewModal: React.FC<Props> = ({
           <div className="flex items-baseline justify-between gap-3 w-full">
             <div className="flex items-baseline gap-2 flex-1 min-w-0">
               <span className="font-extrabold text-black uppercase text-[11px] min-w-[50px]">Add:</span>
-              <span className="font-bold text-black text-xs sm:text-sm leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5">
+              <span className={`leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5 text-black ${getAddressPrintFontSizeClass(shopProfile.customerAddressFontSize)}`}>
                 {estimate.customerAddress || '—'}
               </span>
             </div>
@@ -165,11 +171,6 @@ export const PrintPreviewModal: React.FC<Props> = ({
                   <td className="border border-black py-0.5 px-1 text-center font-bold text-[10.5px]">{index + 1}</td>
                   <td className="border border-black py-0.5 px-2 font-bold text-xs sm:text-[13px]">
                     {item.description || '—'}
-                    {item.caseCount && item.caseCount > 0 && (
-                      <span className="text-[9.5px] text-black font-normal ml-1">
-                        (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
-                      </span>
-                    )}
                   </td>
                   <td className="border border-black py-0.5 px-1.5 text-center font-semibold text-[11px] text-black">
                     {item.cfc ? `${item.cfc}` : '—'}

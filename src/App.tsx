@@ -20,7 +20,19 @@ import { PrintPreviewModal } from './components/PrintPreviewModal';
 import { PaymentQRCode } from './components/PaymentQRCode';
 import { GaneshGraphic } from './components/GaneshGraphic';
 import { numberToWords } from './utils/numberToWords';
-import { parsePackaging, calculateQtyFromCfc, calculateCfcFromQty, formatQtyWithUnit, formatDateDDMMYY } from './utils/cfcHelper';
+import {
+  parsePackaging,
+  calculateQtyFromCfc,
+  calculateCfcFromQty,
+  formatQtyWithUnit,
+  formatDateDDMMYY,
+  getNamePrintFontSizeClass,
+  getAddressPrintFontSizeClass,
+  getNameScreenFontSizeClass,
+  getAddressScreenFontSizeClass,
+  getDatePrintFontSizeClass,
+  getDateScreenFontSizeClass,
+} from './utils/cfcHelper';
 import defaultProducts from './data/defaultProducts.json';
 
 declare global {
@@ -46,6 +58,9 @@ const DEFAULT_SHOP_PROFILE: ShopProfile = {
   currencySymbol: '₹',
   headerRightType: 'ganesh',
   dsOptions: ['Gautam', 'Viresh', 'Counter Sale'],
+  customerNameFontSize: 'xl',
+  customerAddressFontSize: 'xl',
+  dateFontSize: 'xl',
 };
 
 const getNextEstimateNumber = (historyList: SavedEstimate[]): string => {
@@ -936,7 +951,7 @@ export const App: React.FC = () => {
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="font-bold text-black text-[9px] uppercase">Date:</span>
-                <span className="font-black text-black text-[10px]">{formatDateDDMMYY(estimate.date)}</span>
+                <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>{formatDateDDMMYY(estimate.date)}</span>
               </div>
             </div>
           </div>
@@ -946,7 +961,7 @@ export const App: React.FC = () => {
             {/* Row 1: Name (100% Full Width) */}
             <div className="flex items-baseline gap-1.5 w-full">
               <span className="font-black text-black uppercase text-[10.5px] min-w-[44px]">Name:</span>
-              <span className="font-black text-black text-xs sm:text-[14px] leading-tight flex-1 border-b border-dotted border-black pb-0.5">
+              <span className={`leading-tight flex-1 border-b border-dotted border-black pb-0.5 text-black ${getNamePrintFontSizeClass(shopProfile.customerNameFontSize)}`}>
                 {estimate.customerName || '—'}
               </span>
             </div>
@@ -955,7 +970,7 @@ export const App: React.FC = () => {
             <div className="flex items-baseline justify-between gap-3 w-full">
               <div className="flex items-baseline gap-1.5 flex-1 min-w-0">
                 <span className="font-extrabold text-black uppercase text-[9.5px] min-w-[44px]">Add:</span>
-                <span className="font-bold text-black text-[11px] sm:text-xs leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5">
+                <span className={`leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5 text-black ${getAddressPrintFontSizeClass(shopProfile.customerAddressFontSize)}`}>
                   {estimate.customerAddress || '—'}
                 </span>
               </div>
@@ -988,11 +1003,6 @@ export const App: React.FC = () => {
                     <td className="border border-black py-0.5 px-1 text-center font-bold text-[9px]">{index + 1}</td>
                     <td className="border border-black py-0.5 px-1.5 font-bold text-[10px] sm:text-[11px]">
                       {item.description || '—'}
-                      {item.caseCount && item.caseCount > 0 && (
-                        <span className="text-[8px] text-black font-normal ml-1">
-                          (1 Gatta = {item.caseCount} {item.unit || 'PAC'})
-                        </span>
-                      )}
                     </td>
                     <td className="border border-black py-0.5 px-1 text-center font-semibold text-[9px] text-black">
                       {item.cfc ? `${item.cfc}` : '—'}
@@ -1336,7 +1346,7 @@ export const App: React.FC = () => {
                   type="date"
                   value={estimate.date}
                   onChange={(e) => setEstimate({ ...estimate, date: e.target.value })}
-                  className="w-32 font-bold text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none text-left cursor-pointer"
+                  className={`w-32 font-bold text-black bg-transparent border-none focus:outline-none text-left cursor-pointer ${getDateScreenFontSizeClass(shopProfile.dateFontSize)}`}
                 />
               </div>
             </div>
@@ -1354,7 +1364,7 @@ export const App: React.FC = () => {
                 onChange={(e) =>
                   setEstimate({ ...estimate, customerName: e.target.value })
                 }
-                className="w-full bg-white border-b-2 border-slate-300 hover:border-black focus:border-black px-2 py-0.5 font-black text-black text-base sm:text-lg focus:outline-none print:border-none"
+                className={`w-full bg-white border-b-2 border-slate-300 hover:border-black focus:border-black px-2 py-0.5 text-black focus:outline-none print:border-none ${getNameScreenFontSizeClass(shopProfile.customerNameFontSize)}`}
               />
             </div>
 
@@ -1369,7 +1379,7 @@ export const App: React.FC = () => {
                   onChange={(e) =>
                     setEstimate({ ...estimate, customerAddress: e.target.value })
                   }
-                  className="w-full bg-white border-b border-slate-300 hover:border-black focus:border-black px-2 py-0.5 font-bold text-black text-xs sm:text-sm focus:outline-none print:border-none"
+                  className={`w-full bg-white border-b border-slate-300 hover:border-black focus:border-black px-2 py-0.5 text-black focus:outline-none print:border-none ${getAddressScreenFontSizeClass(shopProfile.customerAddressFontSize)}`}
                 />
               </div>
 

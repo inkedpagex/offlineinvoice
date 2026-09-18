@@ -127,3 +127,65 @@ export function formatDateDDMMYY(dateStr?: string): string {
   return clean;
 }
 
+export function getNamePrintFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-xs font-black';
+    case 'large': return 'text-sm font-black';
+    case '2xl': return 'text-[18px] font-black tracking-tight';
+    case 'xl':
+    default: return 'text-[15.5px] font-black tracking-tight';
+  }
+}
+
+export function getAddressPrintFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-[10px] font-bold';
+    case 'large': return 'text-[12px] font-bold';
+    case '2xl': return 'text-[16px] font-extrabold';
+    case 'xl':
+    default: return 'text-[14px] font-bold';
+  }
+}
+
+export function getNameScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-sm font-black';
+    case 'large': return 'text-base font-black';
+    case '2xl': return 'text-xl font-black';
+    case 'xl':
+    default: return 'text-lg font-black';
+  }
+}
+
+export function getAddressScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-xs font-bold';
+    case 'large': return 'text-sm font-bold';
+    case '2xl': return 'text-lg font-extrabold';
+    case 'xl':
+    default: return 'text-base font-bold';
+  }
+}
+
+export function getDatePrintFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-[9px] font-bold';
+    case 'large': return 'text-[11px] font-extrabold';
+    case '2xl': return 'text-[13.5px] font-black';
+    case 'xl':
+    default: return 'text-[11.5px] font-black';
+  }
+}
+
+export function getDateScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-xs font-semibold';
+    case 'large': return 'text-sm font-bold';
+    case '2xl': return 'text-base font-black';
+    case 'xl':
+    default: return 'text-sm font-extrabold';
+  }
+}
+
+
+

@@ -14,6 +14,8 @@ export interface Product {
   cfcUnit?: string;
 }
 
+export type FontSizeOption = 'normal' | 'large' | 'xl' | '2xl';
+
 export interface ShopProfile {
   name: string;
   tagline: string;
@@ -28,6 +30,9 @@ export interface ShopProfile {
   qrCodeUrl?: string;
   headerRightType?: 'ganesh' | 'qr' | 'none';
   dsOptions?: string[];
+  customerNameFontSize?: FontSizeOption;
+  customerAddressFontSize?: FontSizeOption;
+  dateFontSize?: FontSizeOption;
 }
 
 export interface EstimateItem {
