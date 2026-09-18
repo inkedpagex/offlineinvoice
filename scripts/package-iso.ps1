@@ -213,7 +213,15 @@ label=$productName Setup
 
     # 6. Verify and Report Output Stats
     $isoItem = Get-Item $finalIsoPath
-    $hash = (Get-FileHash -Path $finalIsoPath -Algorithm SHA256).Hash
+    $hash = try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $stream = [System.IO.File]::OpenRead($finalIsoPath)
+        $bytes = $sha.ComputeHash($stream)
+        $stream.Close()
+        [System.BitConverter]::ToString($bytes).Replace("-", "").ToUpper()
+    } catch {
+        "N/A"
+    }
 
     Write-Host "------------------------------------------------------" -ForegroundColor Green
     Write-Host "[SUCCESS] ISO Image Built Successfully!" -ForegroundColor Green

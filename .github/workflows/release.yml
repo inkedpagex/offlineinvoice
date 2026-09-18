@@ -52,7 +52,11 @@ jobs:
           if (Test-Path $checksumPath) { Remove-Item $checksumPath -Force }
           
           foreach ($file in $releaseFiles) {
-            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            $stream = [System.IO.File]::OpenRead($file.FullName)
+            $bytes = $sha.ComputeHash($stream)
+            $stream.Close()
+            $hash = [System.BitConverter]::ToString($bytes).Replace("-", "").ToUpper()
             $line = "$hash  $($file.Name)"
             Add-Content -Path $checksumPath -Value $line
             Write-Host $line
