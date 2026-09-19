@@ -29,19 +29,21 @@
 /* Print Specific Optimizations (Zero Paper Waste, Clean Proportions, Pure B&W) */
 @media print {
   @page {
-    margin: 3mm 4mm 3mm 4mm;
-    size: auto;
+    margin: 2mm 3mm 2mm 3mm !important;
+    size: A4 portrait;
   }
 
   html, body {
     background-color: #ffffff !important;
     color: #000000 !important;
-    font-size: 8.5pt;
+    font-size: 8pt;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    line-height: 1.25;
+    max-height: 100% !important;
+    line-height: 1.2;
+    overflow: hidden !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
@@ -71,11 +73,11 @@
     margin: 0 !important;
   }
 
-  /* A4 2-in-1 Dedicated Print Layout: Exactly 2 equal halves on 1 A4 Sheet */
+  /* A4 2-in-1 Dedicated Print Layout: Exactly 2 equal halves on 1 A4 Sheet (Never 2 Pages) */
   .format-A4-2in1-container {
     width: 100% !important;
-    max-height: 290mm !important;
-    height: 290mm !important;
+    max-height: 285mm !important;
+    height: 285mm !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
@@ -83,28 +85,37 @@
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
     overflow: hidden !important;
   }
 
   .copy-half-sheet {
     width: 100% !important;
-    max-height: 141mm !important;
-    height: 141mm !important;
+    max-height: 138mm !important;
+    height: 138mm !important;
+    flex: 0 0 138mm !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
     box-sizing: border-box !important;
     border: 1.5px solid #000000 !important;
-    padding: 2.5mm 3mm !important;
+    padding: 1.5mm 2.5mm !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
     overflow: hidden !important;
   }
 
   .cut-line-separator {
     width: 100% !important;
-    margin: 1mm 0 !important;
+    height: 0px !important;
+    margin: 0.8mm 0 !important;
+    border-top: 1px dashed #000000 !important;
     box-sizing: border-box !important;
+    flex-shrink: 0 !important;
   }
 
   .format-A4 {

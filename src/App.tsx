@@ -11,9 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Edit2,
   X,
-  List,
 } from 'lucide-react';
 import { ShopProfile, ActiveEstimate, EstimateItem, Product, SavedEstimate } from './types';
 import { ShopSettingsModal } from './components/ShopSettingsModal';
@@ -250,11 +248,10 @@ export const App: React.FC = () => {
     window.electronAPI?.dbSet('shop_profile', updated);
   };
 
-  // Custom D.S. (Salesperson / Dispatch) Modal & Typing Mode State
+  // Custom D.S. (Salesperson / Dispatch) Modal State
   const [isCustomDsModalOpen, setIsCustomDsModalOpen] = useState(false);
   const [customDsInput, setCustomDsInput] = useState('');
   const [saveCustomDsToProfile, setSaveCustomDsToProfile] = useState(true);
-  const [isDsManualTyping, setIsDsManualTyping] = useState(false);
   const customDsInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleOpenCustomDsModal = () => {
@@ -922,58 +919,58 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [estimate, history, isProductsOpen, isSettingsOpen, isHistoryOpen, isPreviewOpen]);
 
-  // Reusable Single Copy for 2-in-1 Print Rendering (Clean Simple Lining, Zero Page Waste)
+  // Reusable Single Copy for 2-in-1 Print Rendering (Clean Simple Lining, Zero Page Waste, Strict 1 Page)
   const renderPrintCopy = (copyType: 'ORIGINAL' | 'DUPLICATE') => {
     const headerRightMode = shopProfile.headerRightType || 'ganesh';
 
     return (
-      <div className="copy-half-sheet bg-white text-black p-2 text-[10px] leading-tight flex flex-col justify-between border-2 border-black">
+      <div className="copy-half-sheet bg-white text-black p-1 text-[9.5px] leading-tight flex flex-col justify-between border border-black">
         {/* Top Part: Header + Customer Details */}
         <div>
           {/* Top Copy Tag: Original / Duplicate Marker */}
           {copyType && (
-            <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1 text-black">
+            <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.2 mb-0.5 text-black">
               <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
               <span className="font-mono text-[8px] text-black">ESTIMATE</span>
             </div>
           )}
 
           {/* Header (Left Logo | Center Shop Details | Right Ganesh Ji / Payment QR) */}
-          <div className="border-b-2 border-black pb-1 mb-1">
+          <div className="border-b border-black pb-0.5 mb-0.5">
             <div className="grid grid-cols-12 items-center gap-1">
               {/* Left: Shop Logo */}
-              <div className="col-span-3 flex justify-end items-center pr-2">
+              <div className="col-span-3 flex justify-end items-center pr-1.5">
                 {shopProfile.logoUrl ? (
                   <img
                     src={shopProfile.logoUrl}
                     alt="Logo"
-                    className="max-h-11 max-w-[100px] object-contain"
+                    className="max-h-9 max-w-[90px] object-contain"
                   />
                 ) : (
-                  <div className="w-4 h-4" />
+                  <div className="w-3 h-3" />
                 )}
               </div>
 
               {/* Center: Shop Info */}
               <div className="col-span-6 text-center">
-                <h1 className="text-base font-black uppercase tracking-tight text-black leading-tight">
+                <h1 className="text-sm sm:text-base font-black uppercase tracking-tight text-black leading-tight">
                   {shopProfile.name}
                 </h1>
                 {shopProfile.tagline && (
-                  <p className="text-[9px] font-bold text-black mt-0.5">{shopProfile.tagline}</p>
+                  <p className="text-[8.5px] font-bold text-black mt-0.2 leading-tight">{shopProfile.tagline}</p>
                 )}
-                <p className="text-[8.5px] text-black mt-0.5">
+                <p className="text-[8px] text-black mt-0.2 leading-tight">
                   {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
                 </p>
-                <div className="mt-0.5 text-[8.5px] font-black uppercase tracking-wider text-black">
+                <div className="mt-0.2 text-[8px] font-black uppercase tracking-wider text-black">
                   — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
                 </div>
               </div>
 
               {/* Right: Lord Ganesh Ji Emblem (Default) OR Payment QR */}
-              <div className="col-span-3 flex flex-col justify-center items-start pl-2">
+              <div className="col-span-3 flex flex-col justify-center items-start pl-1.5">
                 {headerRightMode === 'ganesh' ? (
-                  <GaneshGraphic size={36} isCompact={true} />
+                  <GaneshGraphic size={32} isCompact={true} />
                 ) : headerRightMode === 'qr' && (shopProfile.upiId || shopProfile.qrCodeUrl) ? (
                   <div className="flex flex-col items-center">
                     <PaymentQRCode
@@ -981,55 +978,55 @@ export const App: React.FC = () => {
                       shopName={shopProfile.name}
                       grandTotal={grandTotal}
                       customQrUrl={shopProfile.qrCodeUrl}
-                      size={40}
+                      size={34}
                     />
-                    <span className="text-[6.5px] font-bold uppercase text-black">Scan & Pay</span>
+                    <span className="text-[6px] font-bold uppercase text-black">Scan & Pay</span>
                   </div>
                 ) : (
-                  <div className="w-4 h-4" />
+                  <div className="w-3 h-3" />
                 )}
               </div>
             </div>
           </div>
 
           {/* Sub-Header Strip: ESTIMATE | S. No. | Date */}
-          <div className="flex justify-between items-center border-b border-black py-0.5 px-1 mb-1 text-[10px] bg-white">
-            <div className="flex items-center gap-2">
-              <span className="font-black text-[10.5px] uppercase tracking-wider text-black">ESTIMATE</span>
+          <div className="flex justify-between items-center border-b border-black py-0.2 px-1 mb-0.5 text-[9.5px] bg-white">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-[9.5px] uppercase tracking-wider text-black">ESTIMATE</span>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="flex items-baseline gap-1">
-                <span className="font-bold text-black text-[9px] uppercase">S. No.:</span>
+                <span className="font-bold text-black text-[8.5px] uppercase">S. No.:</span>
                 <span className="font-black text-black text-xs font-mono">{estimate.estimateNumber}</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="font-bold text-black text-[9px] uppercase">Date:</span>
+                <span className="font-bold text-black text-[8.5px] uppercase">Date:</span>
                 <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>{formatDateDDMMYY(estimate.date)}</span>
               </div>
             </div>
           </div>
 
           {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
-          <div className="border-b border-black pb-1 mb-1 text-[10px] space-y-1">
+          <div className="border-b border-black pb-0.5 mb-0.5 space-y-0.5 text-[9.5px]">
             {/* Row 1: Name (100% Full Width) */}
             <div className="flex items-baseline gap-1.5 w-full">
-              <span className="font-black text-black uppercase text-[10.5px] min-w-[44px]">Name:</span>
-              <span className={`leading-tight flex-1 border-b border-dotted border-black pb-0.5 text-black ${getNamePrintFontSizeClass(shopProfile.customerNameFontSize)}`}>
+              <span className="font-black text-black uppercase text-[10px] min-w-[40px]">Name:</span>
+              <span className={`leading-tight flex-1 border-b border-dotted border-black pb-0.2 text-black ${getNamePrintFontSizeClass(shopProfile.customerNameFontSize)}`}>
                 {estimate.customerName || '—'}
               </span>
             </div>
 
             {/* Row 2: Add (Address) + D.S. */}
-            <div className="flex items-baseline justify-between gap-3 w-full">
+            <div className="flex items-baseline justify-between gap-2 w-full">
               <div className="flex items-baseline gap-1.5 flex-1 min-w-0">
-                <span className="font-extrabold text-black uppercase text-[9.5px] min-w-[44px]">Add:</span>
-                <span className={`leading-tight truncate flex-1 border-b border-dotted border-black pb-0.5 text-black ${getAddressPrintFontSizeClass(shopProfile.customerAddressFontSize)}`}>
+                <span className="font-extrabold text-black uppercase text-[9px] min-w-[40px]">Add:</span>
+                <span className={`leading-tight truncate flex-1 border-b border-dotted border-black pb-0.2 text-black ${getAddressPrintFontSizeClass(shopProfile.customerAddressFontSize)}`}>
                   {estimate.customerAddress || '—'}
                 </span>
               </div>
-              <div className="flex items-baseline gap-1 flex-shrink-0 pl-2">
-                <span className="font-black text-black uppercase text-[9.5px]">D.S.:</span>
-                <span className="font-black text-black text-[10.5px] min-w-[50px] text-center border-b border-dotted border-black pb-0.5">
+              <div className="flex items-baseline gap-1 flex-shrink-0 pl-1.5">
+                <span className="font-black text-black uppercase text-[9px]">D.S.:</span>
+                <span className="font-black text-black text-[10px] min-w-[44px] text-center border-b border-dotted border-black pb-0.2">
                   {estimate.dpName || '—'}
                 </span>
               </div>
@@ -1037,15 +1034,15 @@ export const App: React.FC = () => {
           </div>
 
           {/* Table */}
-          <table className="w-full border-collapse border border-black mb-1 text-[9.5px]">
+          <table className="w-full border-collapse border border-black mb-0.5 text-[9px]">
             <thead>
-              <tr className="border-b border-black bg-white font-black uppercase text-center text-[9px]">
-                <th className="border border-black py-0.5 px-1 w-6">#</th>
-                <th className="border border-black py-0.5 px-1.5 text-left">Item Description</th>
-                <th className="border border-black py-0.5 px-1 w-11 text-center">CFC</th>
-                <th className="border border-black py-0.5 px-1 w-16 text-right">Qty</th>
-                <th className="border border-black py-0.5 px-1 w-16 text-right">Rate</th>
-                <th className="border border-black py-0.5 px-1.5 w-20 text-right">Amount</th>
+              <tr className="border-b border-black bg-white font-black uppercase text-center text-[8.5px]">
+                <th className="border border-black py-0.2 px-1 w-5">#</th>
+                <th className="border border-black py-0.2 px-1.5 text-left">Item Description</th>
+                <th className="border border-black py-0.2 px-1 w-10 text-center">CFC</th>
+                <th className="border border-black py-0.2 px-1 w-14 text-right">Qty</th>
+                <th className="border border-black py-0.2 px-1 w-14 text-right">Rate</th>
+                <th className="border border-black py-0.2 px-1.5 w-18 text-right">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1053,20 +1050,20 @@ export const App: React.FC = () => {
                 const itemAmt = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
                 return (
                   <tr key={item.id} className="border-b border-black">
-                    <td className="border border-black py-0.5 px-1 text-center font-bold text-[9px]">{index + 1}</td>
-                    <td className="border border-black py-0.5 px-1.5 font-bold text-[10px] sm:text-[11px]">
+                    <td className="border border-black py-0.2 px-1 text-center font-bold text-[8.5px]">{index + 1}</td>
+                    <td className="border border-black py-0.2 px-1.5 font-bold text-[9.5px] sm:text-[10px]">
                       {item.description || '—'}
                     </td>
-                    <td className="border border-black py-0.5 px-1 text-center font-semibold text-[9px] text-black">
+                    <td className="border border-black py-0.2 px-1 text-center font-semibold text-[8.5px] text-black">
                       {item.cfc ? `${item.cfc}` : '—'}
                     </td>
-                    <td className="border border-black py-0.5 px-1 text-right font-bold text-[9.5px]">
+                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px]">
                       {formatQtyWithUnit(item.qty, item.unit)}
                     </td>
-                    <td className="border border-black py-0.5 px-1 text-right font-bold text-[9.5px]">
+                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px]">
                       {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
                     </td>
-                    <td className="border border-black py-0.5 px-1.5 text-right font-black text-[10px] sm:text-[10.5px]">
+                    <td className="border border-black py-0.2 px-1.5 text-right font-black text-[9.5px] sm:text-[10px]">
                       {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
                     </td>
                   </tr>
@@ -1078,34 +1075,34 @@ export const App: React.FC = () => {
 
         {/* Bottom Part: Totals, Notice & Receiver Signatures */}
         <div>
-          <div className="grid grid-cols-12 gap-1 border-t border-black pt-0.5 text-[9.5px]">
+          <div className="grid grid-cols-12 gap-1 border-t border-black pt-0.5 text-[9px]">
             <div className="col-span-7 flex flex-col justify-between">
               <div>
-                <p className="font-black uppercase text-[8px] text-black">Terms / Notice:</p>
-                <p className="text-[8.5px] text-black font-semibold leading-tight mt-0.5">
+                <p className="font-black uppercase text-[7.5px] text-black">Terms / Notice:</p>
+                <p className="text-[8px] text-black font-semibold leading-tight mt-0.2">
                   {estimate.notes || shopProfile.defaultTerms}
                 </p>
               </div>
 
               {grandTotal > 0 && (
-                <div className="mt-0.5 text-[8.5px] font-bold leading-tight">
+                <div className="mt-0.2 text-[8px] font-bold leading-tight">
                   <span className="font-extrabold">Words: </span><span className="italic">{totalInWords}</span>
                 </div>
               )}
             </div>
 
             <div className="col-span-5 space-y-0.2">
-              <div className="flex justify-between py-0.2 border-b border-black font-bold text-[9px]">
+              <div className="flex justify-between py-0.2 border-b border-black font-bold text-[8.5px]">
                 <span>Subtotal:</span>
                 <span>{shopProfile.currencySymbol}{subtotal.toFixed(2)}</span>
               </div>
               {discountVal > 0 && (
-                <div className="flex justify-between py-0.2 border-b border-black text-[9px]">
+                <div className="flex justify-between py-0.2 border-b border-black text-[8.5px]">
                   <span>Discount:</span>
                   <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-[10.5px]">
+              <div className="flex justify-between py-0.2 border-y border-black font-black text-[10px]">
                 <span>TOTAL:</span>
                 <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
               </div>
@@ -1113,21 +1110,21 @@ export const App: React.FC = () => {
           </div>
 
           {/* Dual Signature Block */}
-          <div className="flex justify-between items-end pt-2 mt-0.5 border-t border-dashed border-black">
+          <div className="flex justify-between items-end pt-1 mt-0.5 border-t border-dashed border-black">
             <div className="text-center">
-              <div className="border-t border-black w-28 sm:w-32 pt-0.5 font-bold text-[8.5px] text-black">
+              <div className="border-t border-black w-24 sm:w-28 pt-0.2 font-bold text-[8px] text-black">
                 Receiver&apos;s Signature
               </div>
-              <div className="text-[7.5px] text-black">
+              <div className="text-[7px] text-black">
                 (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
               </div>
             </div>
 
             <div className="text-center">
-              <div className="text-[8px] font-bold text-black mb-3">
+              <div className="text-[7.5px] font-bold text-black mb-1.5">
                 For {shopProfile.name}
               </div>
-              <div className="border-t border-black w-32 sm:w-36 pt-0.5 font-black text-[8.5px] text-black">
+              <div className="border-t border-black w-28 sm:w-32 pt-0.2 font-black text-[8px] text-black">
                 Authorised Signatory
               </div>
             </div>
@@ -1436,83 +1433,36 @@ export const App: React.FC = () => {
                 />
               </div>
 
-              {/* D.S. Selector: Dropdown Mode & Direct Typing Mode */}
+              {/* D.S. Selector: Clean Single Dropdown */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span className="font-extrabold text-black text-xs uppercase min-w-[32px] text-slate-700">D.S.:</span>
-                
-                {isDsManualTyping ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="text"
-                      placeholder="Type D.S. name..."
-                      value={estimate.dpName || ''}
-                      onChange={(e) => setEstimate({ ...estimate, dpName: e.target.value })}
-                      className="w-36 font-bold text-black text-xs sm:text-sm bg-white border border-black rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-black"
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsDsManualTyping(false)}
-                      className="p-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 transition-colors shadow-2xs"
-                      title="Switch back to D.S. Dropdown List"
-                    >
-                      <List className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <select
-                      value={estimate.dpName || ''}
-                      onChange={(e) => {
-                        if (e.target.value === '__add_custom__') {
-                          handleOpenCustomDsModal();
-                        } else if (e.target.value === '__type_manually__') {
-                          setIsDsManualTyping(true);
-                        } else {
-                          setEstimate({ ...estimate, dpName: e.target.value });
-                        }
-                      }}
-                      className="font-bold text-black text-xs sm:text-sm bg-slate-50 border border-black rounded px-2 py-1 shadow-2xs focus:outline-none cursor-pointer text-slate-900 max-w-[155px]"
-                      title="Select DS (Dispatch / Salesperson / Counter)"
-                    >
-                      <option value="">— Select D.S. —</option>
-                      {(shopProfile.dsOptions && shopProfile.dsOptions.length > 0
-                        ? shopProfile.dsOptions
-                        : ['Gautam', 'Viresh', 'Counter Sale']
-                      ).map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                      {estimate.dpName &&
-                        !(shopProfile.dsOptions || ['Gautam', 'Viresh', 'Counter Sale']).includes(estimate.dpName) && (
-                          <option value={estimate.dpName}>{estimate.dpName}</option>
-                        )}
-                      <option value="__add_custom__">+ Add Custom D.S....</option>
-                      <option value="__type_manually__">✏️ Type Manually...</option>
-                    </select>
-
-                    {/* Quick + Add Button */}
-                    <button
-                      type="button"
-                      onClick={handleOpenCustomDsModal}
-                      className="p-1.5 rounded bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-800 font-bold text-xs transition-colors flex items-center shadow-2xs active:scale-95"
-                      title="Add New Custom D.S. / Salesperson Name"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-sky-700" />
-                    </button>
-
-                    {/* Quick ✏️ Direct Typing Toggle */}
-                    <button
-                      type="button"
-                      onClick={() => setIsDsManualTyping(true)}
-                      className="p-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 transition-colors shadow-2xs active:scale-95"
-                      title="Type D.S. name directly"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
+                <select
+                  value={estimate.dpName || ''}
+                  onChange={(e) => {
+                    if (e.target.value === '__add_custom__') {
+                      handleOpenCustomDsModal();
+                    } else {
+                      setEstimate({ ...estimate, dpName: e.target.value });
+                    }
+                  }}
+                  className="font-bold text-black text-xs sm:text-sm bg-slate-50 border border-black rounded px-2.5 py-1 shadow-2xs focus:outline-none cursor-pointer text-slate-900 max-w-[170px]"
+                  title="Select DS (Dispatch / Salesperson / Counter)"
+                >
+                  <option value="">— Select D.S. —</option>
+                  {(shopProfile.dsOptions && shopProfile.dsOptions.length > 0
+                    ? shopProfile.dsOptions
+                    : ['Gautam', 'Viresh', 'Counter Sale']
+                  ).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                  {estimate.dpName &&
+                    !(shopProfile.dsOptions || ['Gautam', 'Viresh', 'Counter Sale']).includes(estimate.dpName) && (
+                      <option value={estimate.dpName}>{estimate.dpName}</option>
+                    )}
+                  <option value="__add_custom__">+ Other / Custom Name...</option>
+                </select>
               </div>
             </div>
           </div>
