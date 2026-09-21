@@ -10,6 +10,8 @@ import {
   getNamePrintFontSizeClass,
   getAddressPrintFontSizeClass,
   getDatePrintFontSizeClass,
+  getSerialPrintFontSizeClass,
+  getTotalPrintFontSizeClass,
 } from '../utils/cfcHelper';
 
 interface Props {
@@ -49,7 +51,7 @@ export const PrintPreviewModal: React.FC<Props> = ({
         {copyLabel && (
           <div className="flex justify-between items-center text-[9px] font-black uppercase border-b border-black pb-0.5 mb-1.5 text-black">
             <span>{copyLabel}</span>
-            <span className="font-mono text-[9px] text-black">ESTIMATE</span>
+            <span className="font-mono text-[8.5px] text-slate-600">OFFLINE ESTIMATE</span>
           </div>
         )}
 
@@ -107,20 +109,19 @@ export const PrintPreviewModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Sub-Header Strip: ESTIMATE | S. No. | Date */}
-        <div className="flex justify-between items-center border-b border-black py-0.5 px-1 mb-1.5 text-xs bg-white">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-xs uppercase tracking-wider text-black">ESTIMATE</span>
+        {/* Sub-Header Strip: S. No. | Date (No duplicate ESTIMATE title) */}
+        <div className="flex justify-between items-center border-b border-black py-0.5 px-1.5 mb-1.5 text-xs bg-white">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-extrabold text-black text-[10px] uppercase">S. No.:</span>
+            <span className={`text-black font-black font-mono ${getSerialPrintFontSizeClass(shopProfile.serialNumberFontSize)}`}>
+              {estimate.estimateNumber}
+            </span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-black text-[10px] uppercase">S. No.:</span>
-              <span className="font-black text-black text-sm font-mono">{estimate.estimateNumber}</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-black text-[10px] uppercase">Date:</span>
-              <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>{formatDateDDMMYY(estimate.date)}</span>
-            </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-extrabold text-black text-[10px] uppercase">Date:</span>
+            <span className={`text-black font-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>
+              {formatDateDDMMYY(estimate.date)}
+            </span>
           </div>
         </div>
 
@@ -158,9 +159,9 @@ export const PrintPreviewModal: React.FC<Props> = ({
               <th className="border border-black py-0.5 px-1 w-7">#</th>
               <th className="border border-black py-0.5 px-2 text-left">Item Description</th>
               <th className="border border-black py-0.5 px-1.5 w-12 text-center">CFC</th>
-              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right">Qty</th>
-              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right">Rate</th>
-              <th className="border border-black py-0.5 px-2 w-24 sm:w-28 text-right">Amount</th>
+              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right whitespace-nowrap">Qty</th>
+              <th className="border border-black py-0.5 px-1.5 w-20 sm:w-24 text-right whitespace-nowrap">Rate</th>
+              <th className="border border-black py-0.5 px-2 w-24 sm:w-28 text-right whitespace-nowrap">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -175,13 +176,13 @@ export const PrintPreviewModal: React.FC<Props> = ({
                   <td className="border border-black py-0.5 px-1.5 text-center font-semibold text-[11px] text-black">
                     {item.cfc ? `${item.cfc}` : '—'}
                   </td>
-                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs">
+                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs whitespace-nowrap">
                     {formatQtyWithUnit(item.qty, item.unit)}
                   </td>
-                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs">
+                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs whitespace-nowrap">
                     {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
                   </td>
-                  <td className="border border-black py-0.5 px-2 text-right font-black text-xs sm:text-[13px]">
+                  <td className="border border-black py-0.5 px-2 text-right font-black text-xs sm:text-[13px] whitespace-nowrap">
                     {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
                   </td>
                 </tr>
@@ -222,21 +223,20 @@ export const PrintPreviewModal: React.FC<Props> = ({
                 <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between py-0.5 border-y-2 border-black font-black text-xs sm:text-sm">
+            <div className="flex justify-between items-center py-0.5 border-y-2 border-black font-black text-xs sm:text-sm">
               <span>GRAND TOTAL:</span>
-              <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+              <span className={getTotalPrintFontSizeClass(shopProfile.totalAmountFontSize)}>
+                {shopProfile.currencySymbol}{grandTotal.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Dual Signature Section: Receiver Signature (Left) & Authorised Signatory (Right) */}
-        <div className="flex justify-between items-end pt-3 mt-1 border-t border-dashed border-slate-300">
+        {/* Dual Signature Section (Hindi-only Receiver Sign with Ample Space) */}
+        <div className="flex justify-between items-end pt-4 mt-1 border-t border-dashed border-slate-300">
           <div className="text-center">
-            <div className="border-t border-black w-32 sm:w-40 pt-0.5 font-bold text-[9.5px] sm:text-[10.5px] text-black">
-              Receiver&apos;s Signature
-            </div>
-            <div className="text-[8px] text-black">
-              (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+            <div className="border-t border-black w-36 sm:w-44 pt-0.5 font-black text-[10px] sm:text-[11px] text-black tracking-tight">
+              हस्ताक्षर ग्राहक / प्राप्तकर्ता
             </div>
           </div>
 

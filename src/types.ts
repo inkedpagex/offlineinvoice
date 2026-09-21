@@ -33,6 +33,8 @@ export interface ShopProfile {
   customerNameFontSize?: FontSizeOption;
   customerAddressFontSize?: FontSizeOption;
   dateFontSize?: FontSizeOption;
+  serialNumberFontSize?: FontSizeOption;
+  totalAmountFontSize?: FontSizeOption;
 }
 
 export interface EstimateItem {

@@ -44,6 +44,8 @@ export const ShopSettingsModal: React.FC<Props> = ({
     customerNameFontSize: shopProfile.customerNameFontSize || 'xl',
     customerAddressFontSize: shopProfile.customerAddressFontSize || 'xl',
     dateFontSize: shopProfile.dateFontSize || 'xl',
+    serialNumberFontSize: shopProfile.serialNumberFontSize || 'xl',
+    totalAmountFontSize: shopProfile.totalAmountFontSize || 'xl',
   });
   const [newDsInput, setNewDsInput] = useState('');
 
@@ -56,6 +58,8 @@ export const ShopSettingsModal: React.FC<Props> = ({
       customerNameFontSize: shopProfile.customerNameFontSize || 'xl',
       customerAddressFontSize: shopProfile.customerAddressFontSize || 'xl',
       dateFontSize: shopProfile.dateFontSize || 'xl',
+      serialNumberFontSize: shopProfile.serialNumberFontSize || 'xl',
+      totalAmountFontSize: shopProfile.totalAmountFontSize || 'xl',
     });
   }, [shopProfile, isOpen]);
 
@@ -602,7 +606,7 @@ export const ShopSettingsModal: React.FC<Props> = ({
             </div>
 
             {/* Date Font Size Selector */}
-            <div>
+            <div className="mb-3">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Date Font Size (तारीख़ का साइज़)
               </label>
@@ -619,6 +623,62 @@ export const ShopSettingsModal: React.FC<Props> = ({
                     onClick={() => setFormData({ ...formData, dateFontSize: item.key as any })}
                     className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all text-center ${
                       (formData.dateFontSize || 'xl') === item.key
+                        ? 'border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* S. No. / Estimate Number Font Size Selector */}
+            <div className="mb-3">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                S. No. / Estimate No. Font Size (बिल नंबर का साइज़)
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { key: 'normal', label: 'Normal' },
+                  { key: 'large', label: 'Large' },
+                  { key: 'xl', label: 'XL (Bada)' },
+                  { key: '2xl', label: '2XL (Huge)' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, serialNumberFontSize: item.key as any })}
+                    className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all text-center ${
+                      (formData.serialNumberFontSize || 'xl') === item.key
+                        ? 'border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Total Amount Font Size Selector */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Total Amount Font Size (कुल राशि का साइज़)
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { key: 'normal', label: 'Normal' },
+                  { key: 'large', label: 'Large' },
+                  { key: 'xl', label: 'XL (Bada)' },
+                  { key: '2xl', label: '2XL (Huge)' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, totalAmountFontSize: item.key as any })}
+                    className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all text-center ${
+                      (formData.totalAmountFontSize || 'xl') === item.key
                         ? 'border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-500/20 shadow-xs'
                         : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
                     }`}

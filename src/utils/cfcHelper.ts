@@ -187,5 +187,46 @@ export function getDateScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2
   }
 }
 
+export function getSerialPrintFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-[9.5px] font-bold font-mono';
+    case 'large': return 'text-[11.5px] font-black font-mono';
+    case '2xl': return 'text-[15px] font-black font-mono';
+    case 'xl':
+    default: return 'text-[13px] font-black font-mono';
+  }
+}
+
+export function getSerialScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-xs font-bold font-mono';
+    case 'large': return 'text-sm font-black font-mono';
+    case '2xl': return 'text-lg font-black font-mono';
+    case 'xl':
+    default: return 'text-base font-black font-mono';
+  }
+}
+
+export function getTotalPrintFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-[9.5px] font-black';
+    case 'large': return 'text-[11.5px] font-black';
+    case '2xl': return 'text-[15px] font-black';
+    case 'xl':
+    default: return 'text-[13px] font-black';
+  }
+}
+
+export function getTotalScreenFontSizeClass(size?: 'normal' | 'large' | 'xl' | '2xl'): string {
+  switch (size) {
+    case 'normal': return 'text-sm font-black';
+    case 'large': return 'text-base font-black';
+    case '2xl': return 'text-2xl font-black tracking-tight';
+    case 'xl':
+    default: return 'text-lg sm:text-xl font-black';
+  }
+}
+
+
 
 

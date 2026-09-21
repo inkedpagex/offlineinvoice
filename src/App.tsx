@@ -33,6 +33,10 @@ import {
   getAddressScreenFontSizeClass,
   getDatePrintFontSizeClass,
   getDateScreenFontSizeClass,
+  getSerialPrintFontSizeClass,
+  getSerialScreenFontSizeClass,
+  getTotalPrintFontSizeClass,
+  getTotalScreenFontSizeClass,
 } from './utils/cfcHelper';
 import defaultProducts from './data/defaultProducts.json';
 
@@ -62,6 +66,8 @@ const DEFAULT_SHOP_PROFILE: ShopProfile = {
   customerNameFontSize: 'xl',
   customerAddressFontSize: 'xl',
   dateFontSize: 'xl',
+  serialNumberFontSize: 'xl',
+  totalAmountFontSize: 'xl',
 };
 
 const getNextEstimateNumber = (historyList: SavedEstimate[]): string => {
@@ -931,7 +937,7 @@ export const App: React.FC = () => {
           {copyType && (
             <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.2 mb-0.5 text-black">
               <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
-              <span className="font-mono text-[8px] text-black">ESTIMATE</span>
+              <span className="font-mono text-[7.5px] text-slate-700">OFFLINE RECORD</span>
             </div>
           )}
 
@@ -989,20 +995,19 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Sub-Header Strip: ESTIMATE | S. No. | Date */}
-          <div className="flex justify-between items-center border-b border-black py-0.2 px-1 mb-0.5 text-[9.5px] bg-white">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-[9.5px] uppercase tracking-wider text-black">ESTIMATE</span>
+          {/* Sub-Header Strip: S. No. | Date (No duplicate ESTIMATE text) */}
+          <div className="flex justify-between items-center border-b border-black py-0.5 px-1.5 mb-0.5 text-[9.5px] bg-white">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-extrabold text-black text-[9px] uppercase tracking-wider">S. No.:</span>
+              <span className={`text-black ${getSerialPrintFontSizeClass(shopProfile.serialNumberFontSize)}`}>
+                {estimate.estimateNumber}
+              </span>
             </div>
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="flex items-baseline gap-1">
-                <span className="font-bold text-black text-[8.5px] uppercase">S. No.:</span>
-                <span className="font-black text-black text-xs font-mono">{estimate.estimateNumber}</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="font-bold text-black text-[8.5px] uppercase">Date:</span>
-                <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>{formatDateDDMMYY(estimate.date)}</span>
-              </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-extrabold text-black text-[9px] uppercase tracking-wider">Date:</span>
+              <span className={`text-black ${getDatePrintFontSizeClass(shopProfile.dateFontSize)}`}>
+                {formatDateDDMMYY(estimate.date)}
+              </span>
             </div>
           </div>
 
@@ -1040,9 +1045,9 @@ export const App: React.FC = () => {
                 <th className="border border-black py-0.2 px-1 w-5">#</th>
                 <th className="border border-black py-0.2 px-1.5 text-left">Item Description</th>
                 <th className="border border-black py-0.2 px-1 w-10 text-center">CFC</th>
-                <th className="border border-black py-0.2 px-1 w-14 text-right">Qty</th>
-                <th className="border border-black py-0.2 px-1 w-14 text-right">Rate</th>
-                <th className="border border-black py-0.2 px-1.5 w-18 text-right">Amount</th>
+                <th className="border border-black py-0.2 px-1 w-16 text-right whitespace-nowrap">Qty</th>
+                <th className="border border-black py-0.2 px-1 w-14 text-right whitespace-nowrap">Rate</th>
+                <th className="border border-black py-0.2 px-1.5 w-18 text-right whitespace-nowrap">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1057,13 +1062,13 @@ export const App: React.FC = () => {
                     <td className="border border-black py-0.2 px-1 text-center font-semibold text-[8.5px] text-black">
                       {item.cfc ? `${item.cfc}` : '—'}
                     </td>
-                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px]">
+                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px] whitespace-nowrap">
                       {formatQtyWithUnit(item.qty, item.unit)}
                     </td>
-                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px]">
+                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px] whitespace-nowrap">
                       {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
                     </td>
-                    <td className="border border-black py-0.2 px-1.5 text-right font-black text-[9.5px] sm:text-[10px]">
+                    <td className="border border-black py-0.2 px-1.5 text-right font-black text-[9.5px] sm:text-[10px] whitespace-nowrap">
                       {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
                     </td>
                   </tr>
@@ -1102,29 +1107,28 @@ export const App: React.FC = () => {
                   <span>- {shopProfile.currencySymbol}{discountVal.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between py-0.2 border-y border-black font-black text-[10px]">
-                <span>TOTAL:</span>
-                <span>{shopProfile.currencySymbol}{grandTotal.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-0.2 border-y border-black font-black">
+                <span className="text-[9.5px]">TOTAL:</span>
+                <span className={getTotalPrintFontSizeClass(shopProfile.totalAmountFontSize)}>
+                  {shopProfile.currencySymbol}{grandTotal.toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Dual Signature Block */}
-          <div className="flex justify-between items-end pt-1 mt-0.5 border-t border-dashed border-black">
+          {/* Dual Signature Block (Hindi-only Receiver Sign with Ample Signing Space) */}
+          <div className="flex justify-between items-end pt-3.5 mt-0.5 border-t border-dashed border-black">
             <div className="text-center">
-              <div className="border-t border-black w-24 sm:w-28 pt-0.2 font-bold text-[8px] text-black">
-                Receiver&apos;s Signature
-              </div>
-              <div className="text-[7px] text-black">
-                (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+              <div className="border-t border-black w-32 sm:w-36 pt-0.5 font-black text-[8.5px] text-black tracking-tight">
+                हस्ताक्षर ग्राहक / प्राप्तकर्ता
               </div>
             </div>
 
             <div className="text-center">
-              <div className="text-[7.5px] font-bold text-black mb-1.5">
+              <div className="text-[7.5px] font-bold text-black mb-2">
                 For {shopProfile.name}
               </div>
-              <div className="border-t border-black w-28 sm:w-32 pt-0.2 font-black text-[8px] text-black">
+              <div className="border-t border-black w-28 sm:w-32 pt-0.5 font-black text-[8px] text-black">
                 Authorised Signatory
               </div>
             </div>
@@ -1368,37 +1372,32 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Estimate Meta Strip (ESTIMATE Title | S. No. | Date) */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-black py-1 px-2 mb-2 bg-slate-50 text-xs sm:text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-black uppercase tracking-wider text-black text-xs sm:text-sm">
-                — {shopProfile.estimateTitle || 'ESTIMATE BILL'} —
-              </span>
+          {/* Meta Strip (S. No. & Date - Clean & Directly Editable) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-black py-1 px-2.5 mb-2 bg-slate-50 text-xs sm:text-sm">
+            {/* S. No. */}
+            <div className="flex items-center bg-white border border-black rounded px-2.5 py-0.5 shadow-2xs">
+              <span className="font-extrabold text-black text-xs uppercase mr-2 text-slate-700">S. No.:</span>
+              <input
+                type="text"
+                value={estimate.estimateNumber}
+                onChange={(e) =>
+                  setEstimate({ ...estimate, estimateNumber: e.target.value })
+                }
+                className={`w-28 font-black text-black bg-transparent border-none focus:outline-none font-mono text-left ${getSerialScreenFontSizeClass(shopProfile.serialNumberFontSize)}`}
+                placeholder="101"
+                title="Serial / Estimate Number (Editable)"
+              />
             </div>
-            <div className="flex items-center gap-3">
-              {/* S. No. */}
-              <div className="flex items-center bg-white border border-black rounded px-2 py-0.5 shadow-2xs">
-                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">S. No.:</span>
-                <input
-                  type="text"
-                  value={estimate.estimateNumber}
-                  onChange={(e) =>
-                    setEstimate({ ...estimate, estimateNumber: e.target.value })
-                  }
-                  className="w-16 font-black text-black text-xs sm:text-sm bg-transparent border-none focus:outline-none font-mono text-left"
-                />
-              </div>
 
-              {/* Date */}
-              <div className="flex items-center bg-white border border-black rounded px-2 py-0.5 shadow-2xs">
-                <span className="font-extrabold text-black text-xs uppercase mr-1.5 text-slate-700">Date:</span>
-                <input
-                  type="date"
-                  value={estimate.date}
-                  onChange={(e) => setEstimate({ ...estimate, date: e.target.value })}
-                  className={`w-32 font-bold text-black bg-transparent border-none focus:outline-none text-left cursor-pointer ${getDateScreenFontSizeClass(shopProfile.dateFontSize)}`}
-                />
-              </div>
+            {/* Date */}
+            <div className="flex items-center bg-white border border-black rounded px-2.5 py-0.5 shadow-2xs">
+              <span className="font-extrabold text-black text-xs uppercase mr-2 text-slate-700">Date:</span>
+              <input
+                type="date"
+                value={estimate.date}
+                onChange={(e) => setEstimate({ ...estimate, date: e.target.value })}
+                className={`w-36 font-bold text-black bg-transparent border-none focus:outline-none text-left cursor-pointer ${getDateScreenFontSizeClass(shopProfile.dateFontSize)}`}
+              />
             </div>
           </div>
 
@@ -1808,7 +1807,7 @@ export const App: React.FC = () => {
                 <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-black">
                   TOTAL:
                 </span>
-                <span className="text-base sm:text-lg font-black tabular-nums text-black">
+                <span className={`tabular-nums text-black ${getTotalScreenFontSizeClass(shopProfile.totalAmountFontSize)}`}>
                   {shopProfile.currencySymbol}
                   {grandTotal.toFixed(2)}
                 </span>
@@ -1817,13 +1816,10 @@ export const App: React.FC = () => {
           </div>
 
           {/* Dual Signature Section (Receiver on Left, Shop Authorised on Right) */}
-          <div className="mt-4 pt-3 border-t border-dashed border-slate-300 print:border-black flex items-end justify-between text-xs text-black">
+          <div className="mt-8 pt-6 border-t border-dashed border-slate-300 print:border-black flex items-end justify-between text-xs text-black">
             <div className="text-center">
-              <div className="border-t border-black w-36 sm:w-44 pt-1 font-bold text-[10px] sm:text-xs text-black">
-                Receiver&apos;s Signature
-              </div>
-              <div className="text-[8.5px] sm:text-[9.5px] text-slate-500 print:text-black mt-0.5">
-                (हस्ताक्षर ग्राहक / प्राप्तकर्ता)
+              <div className="border-t border-black w-36 sm:w-44 pt-1 font-black text-xs text-black tracking-tight">
+                हस्ताक्षर ग्राहक / प्राप्तकर्ता
               </div>
             </div>
 
