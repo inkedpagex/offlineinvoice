@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, Trash2, Eye, FileText, Download } from 'lucide-react';
 import { SavedEstimate } from '../types';
+import { matchHinglish } from '../utils/hinglishMatcher';
 
 interface Props {
   isOpen: boolean;
@@ -26,12 +27,11 @@ export const EstimateHistoryModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const filteredHistory = history.filter((est) => {
-    const term = searchTerm.toLowerCase();
     return (
-      est.estimateNumber.toLowerCase().includes(term) ||
-      (est.customerName && est.customerName.toLowerCase().includes(term)) ||
-      (est.customerContact && est.customerContact.toLowerCase().includes(term)) ||
-      est.date.includes(term)
+      est.estimateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      matchHinglish(est.customerName, searchTerm, est.customerAddress) ||
+      (est.customerContact && est.customerContact.includes(searchTerm)) ||
+      est.date.includes(searchTerm)
     );
   });
 

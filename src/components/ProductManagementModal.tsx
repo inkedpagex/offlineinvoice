@@ -3,6 +3,7 @@ import { X, Plus, Search, Trash2, Edit2, RotateCcw, Check, Layers, ShoppingCart 
 import { Product } from '../types';
 import defaultProducts from '../data/defaultProducts.json';
 import { parsePackaging } from '../utils/cfcHelper';
+import { matchHinglish } from '../utils/hinglishMatcher';
 
 interface Props {
   isOpen: boolean;
@@ -63,10 +64,8 @@ export const ProductManagementModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.packaging && p.packaging.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredProducts = products.filter((p) =>
+    matchHinglish(p.name, searchTerm, p.packaging)
   );
 
   const handleStartAdd = () => {

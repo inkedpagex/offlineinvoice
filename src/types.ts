@@ -14,6 +14,13 @@ export interface Product {
   cfcUnit?: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  address: string;
+  phone?: string;
+}
+
 export type FontSizeOption = 'normal' | 'large' | 'xl' | '2xl';
 
 export interface ShopProfile {

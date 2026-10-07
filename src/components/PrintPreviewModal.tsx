@@ -176,20 +176,20 @@ export const PrintPreviewModal: React.FC<Props> = ({
               const itemAmt = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
               return (
                 <tr key={item.id} className="border-b border-black">
-                  <td className="border border-black py-0.5 px-1 text-center font-bold text-[10.5px]">{index + 1}</td>
-                  <td className="border border-black py-0.5 px-2 font-bold text-xs sm:text-[13px]">
+                  <td className="border border-black py-0.5 px-1 text-center font-bold text-[11px]">{index + 1}</td>
+                  <td className="border border-black py-0.5 px-2 font-black text-sm sm:text-[14.5px] text-black leading-tight">
                     {item.description || '—'}
                   </td>
-                  <td className="border border-black py-0.5 px-1.5 text-center font-semibold text-[11px] text-black">
+                  <td className="border border-black py-0.5 px-1.5 text-center font-bold text-[11.5px] text-black">
                     {item.cfc ? `${item.cfc}` : '—'}
                   </td>
-                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs whitespace-nowrap">
+                  <td className="border border-black py-0.5 px-1.5 text-right font-black text-[12.5px] whitespace-nowrap">
                     {formatQtyWithUnit(item.qty, item.unit)}
                   </td>
-                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-xs whitespace-nowrap">
+                  <td className="border border-black py-0.5 px-1.5 text-right font-bold text-[12px] whitespace-nowrap">
                     {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
                   </td>
-                  <td className="border border-black py-0.5 px-2 text-right font-black text-xs sm:text-[13px] whitespace-nowrap">
+                  <td className="border border-black py-0.5 px-2 text-right font-black text-sm sm:text-[14.5px] whitespace-nowrap">
                     {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
                   </td>
                 </tr>

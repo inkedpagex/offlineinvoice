@@ -12,12 +12,15 @@ import {
   ChevronRight,
   ChevronDown,
   X,
+  MapPin,
+  TrendingUp,
 } from 'lucide-react';
-import { ShopProfile, ActiveEstimate, EstimateItem, Product, SavedEstimate } from './types';
+import { ShopProfile, ActiveEstimate, EstimateItem, Product, SavedEstimate, Customer } from './types';
 import { ShopSettingsModal } from './components/ShopSettingsModal';
 import { ProductManagementModal } from './components/ProductManagementModal';
 import { EstimateHistoryModal } from './components/EstimateHistoryModal';
 import { PrintPreviewModal } from './components/PrintPreviewModal';
+import { SalesReportModal } from './components/SalesReportModal';
 import { PaymentQRCode } from './components/PaymentQRCode';
 import { GaneshGraphic } from './components/GaneshGraphic';
 import { numberToWords } from './utils/numberToWords';
@@ -39,6 +42,8 @@ import {
   getTotalScreenFontSizeClass,
 } from './utils/cfcHelper';
 import defaultProducts from './data/defaultProducts.json';
+import defaultCustomers from './data/defaultCustomers.json';
+import { matchHinglish } from './utils/hinglishMatcher';
 
 declare global {
   interface Window {
@@ -141,6 +146,27 @@ export const App: React.FC = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [activeDropdownRowId, setActiveDropdownRowId] = useState<string | null>(null);
 
+  // Customers State (Loaded from localStorage or default customer list of 87 parties)
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    const saved = localStorage.getItem('offline_customers_catalog');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse customers', e);
+      }
+    }
+    return defaultCustomers as Customer[];
+  });
+
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [selectedCustomerIndex, setSelectedCustomerIndex] = useState<number>(-1);
+  const customerNameInputRef = useRef<HTMLInputElement | null>(null);
+  const customerAddressInputRef = useRef<HTMLInputElement | null>(null);
+
   // Past Estimates History State (stored in localStorage + Electron disk storage)
   const [history, setHistory] = useState<SavedEstimate[]>(() => {
     const saved = localStorage.getItem('offline_estimates_history');
@@ -156,6 +182,7 @@ export const App: React.FC = () => {
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Active Estimate State (Restores whatever was typed so customer name & items are never lost)
   const [estimate, setEstimate] = useState<ActiveEstimate>(() => {
@@ -210,6 +237,10 @@ export const App: React.FC = () => {
           if (data.offline_products_catalog && Array.isArray(data.offline_products_catalog) && data.offline_products_catalog.length > 0) {
             setProducts(data.offline_products_catalog);
             localStorage.setItem('offline_products_catalog', JSON.stringify(data.offline_products_catalog));
+          }
+          if (data.offline_customers_catalog && Array.isArray(data.offline_customers_catalog) && data.offline_customers_catalog.length > 0) {
+            setCustomers(data.offline_customers_catalog);
+            localStorage.setItem('offline_customers_catalog', JSON.stringify(data.offline_customers_catalog));
           }
           if (data.offline_estimates_history && Array.isArray(data.offline_estimates_history)) {
             setHistory(data.offline_estimates_history);
@@ -312,6 +343,61 @@ export const App: React.FC = () => {
   const grandTotal = Math.max(0, subtotal - discountVal);
   const totalInWords = numberToWords(grandTotal);
 
+  // Auto-save new / updated customer to persistent list (localStorage + Electron DB)
+  const handleSaveCustomer = (name?: string, address?: string) => {
+    const trimmedName = (name || '').trim();
+    if (!trimmedName) return;
+    const trimmedAddress = (address || '').trim();
+
+    setCustomers((prev) => {
+      const existingIdx = prev.findIndex(
+        (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      let updated: Customer[];
+      if (existingIdx >= 0) {
+        if (trimmedAddress && prev[existingIdx].address !== trimmedAddress) {
+          updated = [...prev];
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            address: trimmedAddress,
+          };
+        } else {
+          return prev;
+        }
+      } else {
+        const newCust: Customer = {
+          id: `cust-${Date.now()}`,
+          name: trimmedName,
+          address: trimmedAddress,
+        };
+        updated = [newCust, ...prev];
+      }
+
+      localStorage.setItem('offline_customers_catalog', JSON.stringify(updated));
+      window.electronAPI?.dbSet('offline_customers_catalog', updated);
+      return updated;
+    });
+  };
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setEstimate((prev) => ({
+      ...prev,
+      customerName: customer.name,
+      customerAddress: customer.address || prev.customerAddress || '',
+    }));
+    setIsCustomerDropdownOpen(false);
+    setSelectedCustomerIndex(-1);
+
+    // Auto-focus Address or first Line Item
+    setTimeout(() => {
+      if (customerAddressInputRef.current) {
+        customerAddressInputRef.current.focus();
+        customerAddressInputRef.current.select();
+      }
+    }, 50);
+  };
+
   // Automatically save current estimate to local history database
   const saveCurrentEstimateToHistory = () => {
     const hasContent =
@@ -319,6 +405,10 @@ export const App: React.FC = () => {
       estimate.customerName.trim() !== '';
 
     if (!hasContent) return;
+
+    if (estimate.customerName.trim()) {
+      handleSaveCustomer(estimate.customerName, estimate.customerAddress);
+    }
 
     const newSaved: SavedEstimate = {
       id: `est-${Date.now()}`,
@@ -840,6 +930,7 @@ export const App: React.FC = () => {
       exportedAt: new Date().toISOString(),
       shopProfile,
       products,
+      customers,
       history,
     };
     const jsonStr = JSON.stringify(backupData, null, 2);
@@ -863,15 +954,16 @@ export const App: React.FC = () => {
         const text = e.target?.result as string;
         const parsed = JSON.parse(text);
 
-        if (!parsed.products && !parsed.history && !parsed.shopProfile) {
+        if (!parsed.products && !parsed.history && !parsed.shopProfile && !parsed.customers) {
           alert('Invalid backup file! Please select a valid Estimate Printer backup JSON file.');
           return;
         }
 
         const countProducts = Array.isArray(parsed.products) ? parsed.products.length : 0;
+        const countCustomers = Array.isArray(parsed.customers) ? parsed.customers.length : 0;
         const countHistory = Array.isArray(parsed.history) ? parsed.history.length : 0;
 
-        const confirmMsg = `Backup file contains:\n• ${countProducts} Products\n• ${countHistory} Past Estimates History\n\nDo you want to restore this data on this computer?`;
+        const confirmMsg = `Backup file contains:\n• ${countProducts} Products\n• ${countCustomers} Customers\n• ${countHistory} Past Estimates History\n\nDo you want to restore this data on this computer?`;
         if (!window.confirm(confirmMsg)) {
           return;
         }
@@ -880,6 +972,11 @@ export const App: React.FC = () => {
           setProducts(parsed.products);
           localStorage.setItem('offline_products_catalog', JSON.stringify(parsed.products));
           window.electronAPI?.dbSet('offline_products_catalog', parsed.products);
+        }
+        if (parsed.customers && Array.isArray(parsed.customers)) {
+          setCustomers(parsed.customers);
+          localStorage.setItem('offline_customers_catalog', JSON.stringify(parsed.customers));
+          window.electronAPI?.dbSet('offline_customers_catalog', parsed.customers);
         }
         if (parsed.history && Array.isArray(parsed.history)) {
           setHistory(parsed.history);
@@ -892,7 +989,7 @@ export const App: React.FC = () => {
           window.electronAPI?.dbSet('shop_profile', parsed.shopProfile);
         }
 
-        alert(`✅ Restore Successful!\nLoaded ${countProducts} products and ${countHistory} past estimate bills.`);
+        alert(`✅ Restore Successful!\nLoaded ${countProducts} products, ${countCustomers} customers, and ${countHistory} past estimate bills.`);
       } catch (err) {
         alert('Failed to parse backup file: ' + (err as Error).message);
       }
@@ -904,7 +1001,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // If any modal is active, do not hijack typing or shortcut actions
-      if (isProductsOpen || isSettingsOpen || isHistoryOpen || isPreviewOpen) {
+      if (isProductsOpen || isSettingsOpen || isHistoryOpen || isPreviewOpen || isReportOpen) {
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
@@ -923,7 +1020,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [estimate, history, isProductsOpen, isSettingsOpen, isHistoryOpen, isPreviewOpen]);
+  }, [estimate, history, isProductsOpen, isSettingsOpen, isHistoryOpen, isPreviewOpen, isReportOpen]);
 
   // Reusable Single Copy for 2-in-1 Print Rendering (Clean Simple Lining, Zero Page Waste, Strict 1 Page)
   const renderPrintCopy = (copyType: 'ORIGINAL' | 'DUPLICATE') => {
@@ -1046,15 +1143,15 @@ export const App: React.FC = () => {
           </div>
 
           {/* Table */}
-          <table className="w-full border-collapse border border-black mb-0.5 text-[9px]">
+          <table className="w-full border-collapse border border-black mb-0.5 text-[9.5px]">
             <thead>
-              <tr className="border-b border-black bg-white font-black uppercase text-center text-[8.5px]">
-                <th className="border border-black py-0.2 px-1 w-5">#</th>
-                <th className="border border-black py-0.2 px-1.5 text-left">Item Description</th>
-                <th className="border border-black py-0.2 px-1 w-10 text-center">CFC</th>
-                <th className="border border-black py-0.2 px-1 w-16 text-right whitespace-nowrap">Qty</th>
-                <th className="border border-black py-0.2 px-1 w-14 text-right whitespace-nowrap">Rate</th>
-                <th className="border border-black py-0.2 px-1.5 w-18 text-right whitespace-nowrap">Amount</th>
+              <tr className="border-b border-black bg-white font-black uppercase text-center text-[9.5px] sm:text-[10px]">
+                <th className="border border-black py-0.5 px-1 w-6">#</th>
+                <th className="border border-black py-0.5 px-2 text-left">Item Description</th>
+                <th className="border border-black py-0.5 px-1 w-11 text-center">CFC</th>
+                <th className="border border-black py-0.5 px-1.5 w-18 text-right whitespace-nowrap">Qty</th>
+                <th className="border border-black py-0.5 px-1.5 w-16 text-right whitespace-nowrap">Rate</th>
+                <th className="border border-black py-0.5 px-2 w-20 text-right whitespace-nowrap">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1062,20 +1159,20 @@ export const App: React.FC = () => {
                 const itemAmt = typeof item.amount === 'number' ? item.amount : (parseFloat(String(item.amount)) || 0);
                 return (
                   <tr key={item.id} className="border-b border-black">
-                    <td className="border border-black py-0.2 px-1 text-center font-bold text-[8.5px]">{index + 1}</td>
-                    <td className="border border-black py-0.2 px-1.5 font-bold text-[9.5px] sm:text-[10px]">
+                    <td className="border border-black py-0.5 px-1 text-center font-bold text-[10px]">{index + 1}</td>
+                    <td className="border border-black py-0.5 px-2 font-black text-[12px] sm:text-[13px] text-black leading-tight">
                       {item.description || '—'}
                     </td>
-                    <td className="border border-black py-0.2 px-1 text-center font-semibold text-[8.5px] text-black">
+                    <td className="border border-black py-0.5 px-1 text-center font-bold text-[10.5px] text-black">
                       {item.cfc ? `${item.cfc}` : '—'}
                     </td>
-                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px] whitespace-nowrap">
+                    <td className="border border-black py-0.5 px-1.5 text-right font-black text-[11px] whitespace-nowrap">
                       {formatQtyWithUnit(item.qty, item.unit)}
                     </td>
-                    <td className="border border-black py-0.2 px-1 text-right font-bold text-[9px] whitespace-nowrap">
+                    <td className="border border-black py-0.5 px-1.5 text-right font-bold text-[11px] whitespace-nowrap">
                       {item.rate !== '' ? `${shopProfile.currencySymbol}${item.rate}` : '—'}
                     </td>
-                    <td className="border border-black py-0.2 px-1.5 text-right font-black text-[9.5px] sm:text-[10px] whitespace-nowrap">
+                    <td className="border border-black py-0.5 px-2 text-right font-black text-[12px] sm:text-[12.5px] whitespace-nowrap">
                       {shopProfile.currencySymbol}{itemAmt.toFixed(2)}
                     </td>
                   </tr>
@@ -1266,6 +1363,16 @@ export const App: React.FC = () => {
               </span>
             </button>
 
+            {/* Reports Button (Daily, Monthly & Print Summary) */}
+            <button
+              onClick={() => setIsReportOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="View Daily & Monthly Sales Reports"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden lg:inline">Reports</span>
+            </button>
+
             {/* Settings Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
@@ -1410,18 +1517,136 @@ export const App: React.FC = () => {
 
           {/* Customer Details: Full Width Maximum Space + Large Bold Fonts */}
           <div className="border-b border-black pb-2 mb-2 space-y-1.5 bg-white">
-            {/* Row 1: Name (100% Full Width, Big Bold Font) */}
-            <div className="flex items-center gap-2 w-full">
+            {/* Row 1: Name (100% Full Width, Big Bold Font with Autocomplete Dropdown) */}
+            <div className="flex items-center gap-2 w-full relative">
               <span className="font-black text-black text-sm sm:text-base uppercase min-w-[50px]">Name:</span>
-              <input
-                type="text"
-                placeholder="Customer / Party Name (Full space available)"
-                value={estimate.customerName}
-                onChange={(e) =>
-                  setEstimate({ ...estimate, customerName: e.target.value })
-                }
-                className={`w-full bg-white border-b-2 border-slate-300 hover:border-black focus:border-black px-2 py-0.5 text-black focus:outline-none print:border-none ${getNameScreenFontSizeClass(shopProfile.customerNameFontSize)}`}
-              />
+              <div className="relative w-full">
+                <input
+                  ref={customerNameInputRef}
+                  type="text"
+                  placeholder="Customer / Party Name (Type for auto-suggestions...)"
+                  value={estimate.customerName}
+                  onChange={(e) => {
+                    setEstimate({ ...estimate, customerName: e.target.value });
+                    setIsCustomerDropdownOpen(true);
+                    setSelectedCustomerIndex(0);
+                  }}
+                  onFocus={() => {
+                    setIsCustomerDropdownOpen(true);
+                    setSelectedCustomerIndex(0);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setIsCustomerDropdownOpen(false);
+                      if (estimate.customerName.trim()) {
+                        handleSaveCustomer(estimate.customerName, estimate.customerAddress);
+                      }
+                    }, 200);
+                  }}
+                  onKeyDown={(e) => {
+                    const matching =
+                      estimate.customerName.trim().length > 0
+                        ? customers
+                            .filter((c) => matchHinglish(c.name, estimate.customerName, c.address))
+                            .slice(0, 25)
+                        : [];
+
+                    if (isCustomerDropdownOpen && matching.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSelectedCustomerIndex((prev) =>
+                          prev < matching.length - 1 ? prev + 1 : 0
+                        );
+                        return;
+                      }
+                      if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSelectedCustomerIndex((prev) =>
+                          prev > 0 ? prev - 1 : matching.length - 1
+                        );
+                        return;
+                      }
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setIsCustomerDropdownOpen(false);
+                        setSelectedCustomerIndex(-1);
+                        return;
+                      }
+                      if (e.key === 'Enter' || e.key === 'Tab') {
+                        if (selectedCustomerIndex >= 0 && selectedCustomerIndex < matching.length) {
+                          e.preventDefault();
+                          handleSelectCustomer(matching[selectedCustomerIndex]);
+                          return;
+                        }
+                      }
+                    }
+
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      customerAddressInputRef.current?.focus();
+                      customerAddressInputRef.current?.select();
+                    }
+                  }}
+                  className={`w-full bg-white border-b-2 border-slate-300 hover:border-black focus:border-black px-2 py-0.5 text-black focus:outline-none print:border-none ${getNameScreenFontSizeClass(shopProfile.customerNameFontSize)}`}
+                />
+
+                {/* Floating Autocomplete Dropdown for Customers */}
+                {isCustomerDropdownOpen &&
+                  estimate.customerName.trim().length > 0 &&
+                  (() => {
+                    const matching = customers
+                      .filter((c) => matchHinglish(c.name, estimate.customerName, c.address))
+                      .slice(0, 25);
+
+                    if (matching.length === 0) return null;
+
+                    return (
+                      <div
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="absolute left-0 top-full mt-1 w-full max-w-lg max-h-64 overflow-y-auto bg-white border-2 border-black rounded-lg shadow-2xl z-50 no-print text-left scroll-smooth"
+                      >
+                        <div className="px-3 py-1.5 bg-slate-100 border-b border-slate-200 text-[11px] font-extrabold text-black uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 shadow-xs">
+                          <span className="flex items-center gap-1.5 text-slate-800">
+                            <Search className="w-3.5 h-3.5 text-sky-600" />
+                            <span>Customer Suggestions (↑/↓ + Enter)</span>
+                          </span>
+                          <span className="text-[10px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-300">
+                            {matching.length} found
+                          </span>
+                        </div>
+                        {matching.map((c, idx) => (
+                          <button
+                            key={c.id || idx}
+                            type="button"
+                            onClick={() => handleSelectCustomer(c)}
+                            className={`w-full px-3 py-2 text-left flex items-center justify-between border-b border-slate-100 last:border-none transition-colors ${
+                              selectedCustomerIndex === idx
+                                ? 'bg-sky-100 text-sky-950 font-bold ring-1 ring-inset ring-sky-400'
+                                : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold text-black text-sm">
+                                {c.name}
+                              </span>
+                              {c.address && (
+                                <span className="text-xs text-slate-600 font-medium flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3 h-3 text-red-500 inline shrink-0" />
+                                  {c.address}
+                                </span>
+                              )}
+                            </div>
+                            {c.address && (
+                              <span className="text-[11px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 shrink-0 ml-2">
+                                {c.address}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+              </div>
             </div>
 
             {/* Row 2: Add (Address) + D.S. */}
@@ -1429,12 +1654,27 @@ export const App: React.FC = () => {
               <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                 <span className="font-bold text-black text-xs sm:text-sm uppercase min-w-[50px]">Add:</span>
                 <input
+                  ref={customerAddressInputRef}
                   type="text"
                   placeholder="Customer Address / Destination"
                   value={estimate.customerAddress || ''}
                   onChange={(e) =>
                     setEstimate({ ...estimate, customerAddress: e.target.value })
                   }
+                  onBlur={() => {
+                    if (estimate.customerName.trim()) {
+                      handleSaveCustomer(estimate.customerName, estimate.customerAddress);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const firstItemId = estimate.items[0]?.id;
+                      if (firstItemId && itemInputRefs.current[firstItemId]) {
+                        itemInputRefs.current[firstItemId]?.focus();
+                      }
+                    }
+                  }}
                   className={`w-full bg-white border-b border-slate-300 hover:border-black focus:border-black px-2 py-0.5 text-black focus:outline-none print:border-none ${getAddressScreenFontSizeClass(shopProfile.customerAddressFontSize)}`}
                 />
               </div>
@@ -1493,7 +1733,7 @@ export const App: React.FC = () => {
                     activeDropdownRowId === item.id && item.description.trim().length > 0
                       ? products
                           .filter((p) =>
-                            p.name.toLowerCase().includes(item.description.toLowerCase())
+                            matchHinglish(p.name, item.description, p.packaging)
                           )
                           .slice(0, 25)
                       : [];
@@ -1557,7 +1797,7 @@ export const App: React.FC = () => {
                             }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-full font-bold text-black bg-transparent px-1.5 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black print:p-0 text-xs sm:text-sm"
+                          className="w-full font-black text-black bg-transparent px-1.5 py-0.5 h-7 rounded focus:outline-none focus:bg-slate-50 focus:ring-1 focus:ring-black print:p-0 text-sm sm:text-base"
                         />
 
                         {/* Autocomplete Floating Dropdown */}
@@ -1901,6 +2141,15 @@ export const App: React.FC = () => {
         onDeleteEstimate={handleDeletePastEstimate}
         currencySymbol={shopProfile.currencySymbol}
         onExportBackup={handleExportBackup}
+      />
+
+      {/* Sales Report Modal (Daily / Monthly / Custom Period + Printable Report) */}
+      <SalesReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        history={history}
+        shopProfile={shopProfile}
+        onLoadEstimate={handleLoadPastEstimate}
       />
 
       {/* Quick Add Custom D.S. Modal */}
