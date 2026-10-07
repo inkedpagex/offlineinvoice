@@ -47,11 +47,18 @@ export const PrintPreviewModal: React.FC<Props> = ({
   const renderBillCopy = (copyLabel?: string, isCompact: boolean = false) => (
     <div className={`bg-white text-black border-2 border-black rounded-xs shadow-sm font-sans mb-4 ${isCompact ? 'p-2.5 sm:p-3 text-[10.5px]' : 'p-3 sm:p-4 text-xs'}`}>
       <div>
-        {/* Top Copy Label */}
+        {/* Top Copy Label (Enlarged & Prominent) */}
         {copyLabel && (
-          <div className="flex justify-between items-center text-[9px] font-black uppercase border-b border-black pb-0.5 mb-1.5 text-black">
-            <span>{copyLabel}</span>
-            <span className="font-mono text-[8.5px] text-slate-600">OFFLINE ESTIMATE</span>
+          <div className="flex justify-between items-center border-b-2 border-black pb-0.5 mb-1.5 text-black">
+            <div className="flex items-baseline gap-2">
+              <span className="text-base sm:text-lg font-black uppercase tracking-wider text-black">
+                {copyLabel}
+              </span>
+              <span className="text-xs font-bold text-slate-600">
+                ({copyLabel === 'ORIGINAL' ? 'Customer Copy' : 'Office Copy'})
+              </span>
+            </div>
+            <span className="font-mono text-[9px] font-bold text-slate-600 uppercase">OFFLINE ESTIMATE</span>
           </div>
         )}
 

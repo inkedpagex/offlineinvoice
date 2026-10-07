@@ -933,11 +933,18 @@ export const App: React.FC = () => {
       <div className="copy-half-sheet bg-white text-black p-1 text-[9.5px] leading-tight flex flex-col justify-between border border-black">
         {/* Top Part: Header + Customer Details */}
         <div>
-          {/* Top Copy Tag: Original / Duplicate Marker */}
+          {/* Top Copy Tag: Original / Duplicate Marker (Enlarged & Prominent) */}
           {copyType && (
-            <div className="flex justify-between items-center text-[8px] font-black uppercase border-b border-black pb-0.2 mb-0.5 text-black">
-              <span>{copyType === 'ORIGINAL' ? 'ORIGINAL (Customer Copy)' : 'DUPLICATE (Office Copy)'}</span>
-              <span className="font-mono text-[7.5px] text-slate-700">OFFLINE RECORD</span>
+            <div className="flex justify-between items-center border-b border-black pb-0.5 mb-0.5 text-black">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[13px] sm:text-[14px] font-black uppercase tracking-wider text-black">
+                  {copyType}
+                </span>
+                <span className="text-[8.5px] font-bold text-slate-700">
+                  ({copyType === 'ORIGINAL' ? 'Customer Copy' : 'Office Copy'})
+                </span>
+              </div>
+              <span className="font-mono text-[8px] font-bold text-slate-600 uppercase">OFFLINE RECORD</span>
             </div>
           )}
 
