@@ -210,9 +210,14 @@ export const SalesReportModal: React.FC<Props> = ({
     }
   }, [reportMode, selectedDate, selectedMonth, startDate, endDate]);
 
+  const [printScope, setPrintScope] = useState<'active' | 'bills' | 'products' | 'both'>('active');
+
   // Direct Print Report Action
-  const handlePrintReport = () => {
-    window.print();
+  const handlePrintReport = (scope: 'active' | 'bills' | 'products' | 'both' = 'active') => {
+    setPrintScope(scope);
+    setTimeout(() => {
+      window.print();
+    }, 50);
   };
 
   // Export CSV
@@ -228,10 +233,10 @@ export const SalesReportModal: React.FC<Props> = ({
         csv += `${est.estimateNumber},${est.date},${cleanName},${cleanAddr},${cleanDs},${itemsCnt},${est.subtotal.toFixed(2)},${est.discount.toFixed(2)},${est.grandTotal.toFixed(2)}\n`;
       }
     } else {
-      csv = 'Product Description,Total Gatte (CFC),Total Qty Sold,Unit,Total Revenue\n';
+      csv = 'Product Description,Total Gatte (CFC),Total Qty Sold,Unit,Bills Count,Total Revenue\n';
       for (const p of productSummary) {
         const cleanName = `"${p.name.replace(/"/g, '""')}"`;
-        csv += `${cleanName},${p.totalCfc},${p.totalQty},${p.unit},${p.totalAmount.toFixed(2)}\n`;
+        csv += `${cleanName},${p.totalCfc},${p.totalQty},${p.unit},${p.billCount},${p.totalAmount.toFixed(2)}\n`;
       }
     }
 
@@ -239,12 +244,22 @@ export const SalesReportModal: React.FC<Props> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Sales_Report_${reportMode}_${todayStr}.csv`;
+    link.download = `Sales_Report_${reportMode}_${activeTab}_${todayStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  const shouldPrintBills =
+    printScope === 'both' ||
+    (printScope === 'active' && activeTab === 'bills') ||
+    printScope === 'bills';
+
+  const shouldPrintProducts =
+    printScope === 'both' ||
+    (printScope === 'active' && activeTab === 'products') ||
+    printScope === 'products';
 
   if (!isOpen) return null;
 
@@ -273,6 +288,7 @@ export const SalesReportModal: React.FC<Props> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* CSV Export Button */}
               <button
                 onClick={handleExportCsv}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition-all active:scale-95 cursor-pointer"
@@ -282,15 +298,17 @@ export const SalesReportModal: React.FC<Props> = ({
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
 
+              {/* Primary Print Button */}
               <button
-                onClick={handlePrintReport}
+                onClick={() => handlePrintReport('active')}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-white bg-slate-900 hover:bg-black rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
-                title="Print full formatted report"
+                title={`Print current ${activeTab === 'bills' ? 'Invoices List' : 'Product-wise Breakdown'} report`}
               >
                 <Printer className="w-3.5 h-3.5 text-slate-200" />
-                <span>Print Report</span>
+                <span>Print Report ({activeTab === 'bills' ? 'Invoices' : 'Products'})</span>
               </button>
 
+              {/* Close Button */}
               <button
                 onClick={onClose}
                 className="text-slate-400 hover:text-black p-1.5 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer ml-1"
@@ -461,7 +479,7 @@ export const SalesReportModal: React.FC<Props> = ({
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Filter customer / bill..."
+                  placeholder="Filter customer / bill (Hinglish)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black font-semibold"
@@ -553,9 +571,12 @@ export const SalesReportModal: React.FC<Props> = ({
                 📦 Product-wise Breakdown ({productSummary.length} items)
               </button>
             </div>
-            <span className="text-xs font-bold text-slate-500 pb-2 hidden sm:inline">
-              {reportHeading}
-            </span>
+
+            <div className="flex items-center gap-2 pb-2">
+              <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+                {reportHeading}
+              </span>
+            </div>
           </div>
 
           {/* Tab Content Table */}
@@ -646,7 +667,7 @@ export const SalesReportModal: React.FC<Props> = ({
                                       onClose();
                                     }
                                   }}
-                                  className="text-sky-600 hover:text-sky-900 p-1 rounded hover:bg-sky-100 transition-colors"
+                                  className="text-sky-600 hover:text-sky-900 p-1 rounded hover:bg-sky-100 transition-colors cursor-pointer"
                                   title="Load this bill into editor"
                                 >
                                   {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -803,106 +824,224 @@ export const SalesReportModal: React.FC<Props> = ({
               Showing {filteredEstimates.length} bills • Net Sales: {shopProfile.currencySymbol}
               {stats.totalGrand.toFixed(2)}
             </div>
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-black font-bold rounded-lg transition-colors cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handlePrintReport('both')}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold rounded-lg transition-colors cursor-pointer text-xs"
+                title="Print both Invoices List & Product-wise Breakdown"
+              >
+                Print Full Report (Both)
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-black font-bold rounded-lg transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Dedicated Clean Printable Report Sheet (Rendered only during window.print()) */}
-      <div className="hidden print:block printable-area p-4 bg-white text-black font-sans">
+      <div className="hidden print:block printable-area report-print-sheet p-4 bg-white text-black font-sans">
         {/* Printable Report Header */}
         <div className="border-b-2 border-black pb-2 mb-3 text-center">
-          <h1 className="text-xl font-black uppercase tracking-tight">{shopProfile.name}</h1>
-          {shopProfile.tagline && <p className="text-xs font-bold mt-0.5">{shopProfile.tagline}</p>}
-          <p className="text-[11px] mt-0.5">
+          <h1 className="text-2xl font-black uppercase tracking-tight text-black">{shopProfile.name}</h1>
+          {shopProfile.tagline && <p className="text-xs font-bold mt-0.5 text-black">{shopProfile.tagline}</p>}
+          <p className="text-[11px] mt-0.5 text-black">
             {shopProfile.address} {shopProfile.phone && `• Ph: ${shopProfile.phone}`}
           </p>
-          <div className="mt-2 text-sm font-black uppercase tracking-wider border-y border-black py-1">
+          <div className="mt-2 text-sm font-black uppercase tracking-wider border-y-2 border-black py-1 text-black">
             — {reportHeading.toUpperCase()} —
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-bold text-black mt-1 px-1">
+            <span>
+              REPORT VIEW: {shouldPrintBills && shouldPrintProducts ? 'COMPLETE (INVOICES & PRODUCTS)' : shouldPrintProducts ? 'PRODUCT-WISE SALES ANALYSIS' : 'DETAILED INVOICES REGISTER'}
+            </span>
+            <span>
+              D.S. FILTER: {selectedDs === 'all' ? 'ALL' : selectedDs.toUpperCase()}
+            </span>
+            <span>
+              TOTAL BILLS: {stats.billCount}
+            </span>
           </div>
         </div>
 
         {/* Printable Report Summary Cards */}
-        <div className="grid grid-cols-4 border border-black text-center mb-3 text-xs">
+        <div className="grid grid-cols-6 border-2 border-black text-center mb-3 text-xs">
           <div className="p-1.5 border-r border-black">
-            <span className="font-extrabold uppercase text-[9px] block">Total Invoices</span>
+            <span className="font-extrabold uppercase text-[8.5px] block">Total Invoices</span>
             <span className="font-black text-sm">{stats.billCount}</span>
           </div>
           <div className="p-1.5 border-r border-black">
-            <span className="font-extrabold uppercase text-[9px] block">Gross Subtotal</span>
+            <span className="font-extrabold uppercase text-[8.5px] block">Total Gatte (CFC)</span>
+            <span className="font-black text-sm">{stats.totalCfc}</span>
+          </div>
+          <div className="p-1.5 border-r border-black">
+            <span className="font-extrabold uppercase text-[8.5px] block">Total Units Sold</span>
+            <span className="font-black text-sm">{stats.totalItemsQty} PAC</span>
+          </div>
+          <div className="p-1.5 border-r border-black">
+            <span className="font-extrabold uppercase text-[8.5px] block">Gross Subtotal</span>
             <span className="font-black text-sm">{shopProfile.currencySymbol}{stats.totalGross.toFixed(2)}</span>
           </div>
           <div className="p-1.5 border-r border-black">
-            <span className="font-extrabold uppercase text-[9px] block">Total Discount</span>
+            <span className="font-extrabold uppercase text-[8.5px] block">Total Discount</span>
             <span className="font-black text-sm">{shopProfile.currencySymbol}{stats.totalDiscount.toFixed(2)}</span>
           </div>
-          <div className="p-1.5 bg-slate-50">
-            <span className="font-extrabold uppercase text-[9px] block">Net Realized</span>
+          <div className="p-1.5 bg-slate-100">
+            <span className="font-extrabold uppercase text-[8.5px] block">Net Sales Realized</span>
             <span className="font-black text-sm">{shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}</span>
           </div>
         </div>
 
-        {/* Printable Table */}
-        <table className="w-full border-collapse border border-black text-xs mb-4">
-          <thead>
-            <tr className="border-b-2 border-black bg-slate-100 font-black uppercase text-[10px] text-center">
-              <th className="border border-black py-1 px-1 w-7">#</th>
-              <th className="border border-black py-1 px-2 text-left w-16">Bill #</th>
-              <th className="border border-black py-1 px-2 text-left w-20">Date</th>
-              <th className="border border-black py-1 px-2 text-left">Customer / Party Name</th>
-              <th className="border border-black py-1 px-2 text-left">Address</th>
-              <th className="border border-black py-1 px-1.5 w-16">D.S.</th>
-              <th className="border border-black py-1 px-2 text-right w-20">Subtotal</th>
-              <th className="border border-black py-1 px-2 text-right w-16">Disc</th>
-              <th className="border border-black py-1 px-2 text-right w-24">Net Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEstimates.map((est, index) => (
-              <tr key={est.id || index} className="border-b border-black">
-                <td className="border border-black py-1 px-1 text-center font-bold text-[10px]">{index + 1}</td>
-                <td className="border border-black py-1 px-2 font-mono font-black">{est.estimateNumber}</td>
-                <td className="border border-black py-1 px-2 font-bold whitespace-nowrap">{formatDateDDMMYY(est.date)}</td>
-                <td className="border border-black py-1 px-2 font-black text-[11px]">{est.customerName || '—'}</td>
-                <td className="border border-black py-1 px-2 font-medium truncate max-w-[140px]">{est.customerAddress || '—'}</td>
-                <td className="border border-black py-1 px-1.5 text-center font-bold">{est.dpName || '—'}</td>
-                <td className="border border-black py-1 px-2 text-right font-bold">{shopProfile.currencySymbol}{est.subtotal.toFixed(2)}</td>
-                <td className="border border-black py-1 px-2 text-right font-bold">{est.discount > 0 ? `${shopProfile.currencySymbol}${est.discount.toFixed(2)}` : '—'}</td>
-                <td className="border border-black py-1 px-2 text-right font-black text-[11px]">{shopProfile.currencySymbol}{est.grandTotal.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-black font-black bg-slate-50 text-xs">
-              <td colSpan={6} className="border border-black py-1.5 px-2 text-right uppercase">
-                Grand Total ({filteredEstimates.length} Bills):
-              </td>
-              <td className="border border-black py-1.5 px-2 text-right font-black">
-                {shopProfile.currencySymbol}{stats.totalGross.toFixed(2)}
-              </td>
-              <td className="border border-black py-1.5 px-2 text-right font-black">
-                {shopProfile.currencySymbol}{stats.totalDiscount.toFixed(2)}
-              </td>
-              <td className="border border-black py-1.5 px-2 text-right font-black text-sm">
-                {shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+        {/* SECTION 1: Product-wise Summary Table (If active or both) */}
+        {shouldPrintProducts && (
+          <div className="mb-4">
+            <div className="text-xs font-black uppercase tracking-wider border-b border-black pb-0.5 mb-1 flex justify-between items-center">
+              <span>📦 Product-wise Sales & Volume Summary ({productSummary.length} Items)</span>
+              <span className="text-[10px] font-bold">Total Gatte: {stats.totalCfc} | Revenue: {shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}</span>
+            </div>
+            <table className="w-full border-collapse border border-black text-xs">
+              <thead>
+                <tr className="border-b-2 border-black bg-slate-100 font-black uppercase text-[9.5px]">
+                  <th className="border border-black py-1 px-1 w-7 text-center">#</th>
+                  <th className="border border-black py-1 px-2 text-left">Product Description</th>
+                  <th className="border border-black py-1 px-2 w-24 text-center">Gatte (CFC)</th>
+                  <th className="border border-black py-1 px-2 w-28 text-right">Total Qty Sold</th>
+                  <th className="border border-black py-1 px-1.5 w-16 text-center">Unit</th>
+                  <th className="border border-black py-1 px-2 w-24 text-right">Bills Count</th>
+                  <th className="border border-black py-1 px-2 w-32 text-right">Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productSummary.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="border border-black py-3 text-center font-bold text-slate-500">
+                      No product sales recorded in this period.
+                    </td>
+                  </tr>
+                ) : (
+                  productSummary.map((prod, pIdx) => (
+                    <tr key={pIdx} className="border-b border-black">
+                      <td className="border border-black py-0.5 px-1 text-center font-bold text-[10px]">{pIdx + 1}</td>
+                      <td className="border border-black py-0.5 px-2 font-black text-[11px] text-black">{prod.name}</td>
+                      <td className="border border-black py-0.5 px-2 text-center font-black text-[11px]">
+                        {prod.totalCfc > 0 ? prod.totalCfc : '—'}
+                      </td>
+                      <td className="border border-black py-0.5 px-2 text-right font-black text-[11px] tabular-nums">
+                        {prod.totalQty}
+                      </td>
+                      <td className="border border-black py-0.5 px-1.5 text-center font-bold text-[10px]">{prod.unit}</td>
+                      <td className="border border-black py-0.5 px-2 text-right font-bold text-[10.5px]">{prod.billCount} bills</td>
+                      <td className="border border-black py-0.5 px-2 text-right font-black text-[11.5px] tabular-nums">
+                        {shopProfile.currencySymbol}{prod.totalAmount.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-black font-black bg-slate-100 text-xs">
+                  <td colSpan={2} className="border border-black py-1 px-2 text-right uppercase tracking-wider">
+                    Products Summary Total:
+                  </td>
+                  <td className="border border-black py-1 px-2 text-center font-black">
+                    {stats.totalCfc}
+                  </td>
+                  <td className="border border-black py-1 px-2 text-right font-black">
+                    {stats.totalItemsQty}
+                  </td>
+                  <td className="border border-black"></td>
+                  <td className="border border-black py-1 px-2 text-right">{stats.billCount} bills</td>
+                  <td className="border border-black py-1 px-2 text-right font-black text-sm">
+                    {shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
-        {/* Printable Signature Line */}
-        <div className="flex justify-between items-end pt-8 mt-6 border-t border-black text-xs">
+        {/* SECTION 2: Detailed Invoices Register Table (If active or both) */}
+        {shouldPrintBills && (
+          <div className="mb-4">
+            <div className="text-xs font-black uppercase tracking-wider border-b border-black pb-0.5 mb-1 flex justify-between items-center">
+              <span>🧾 Detailed Invoices Register ({filteredEstimates.length} Bills)</span>
+              <span className="text-[10px] font-bold">Total Invoices: {filteredEstimates.length} | Net: {shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}</span>
+            </div>
+            <table className="w-full border-collapse border border-black text-xs">
+              <thead>
+                <tr className="border-b-2 border-black bg-slate-100 font-black uppercase text-[9.5px]">
+                  <th className="border border-black py-1 px-1 w-7 text-center">#</th>
+                  <th className="border border-black py-1 px-1.5 text-center w-14">Bill #</th>
+                  <th className="border border-black py-1 px-2 text-left w-20">Date</th>
+                  <th className="border border-black py-1 px-2 text-left">Customer / Party Name</th>
+                  <th className="border border-black py-1 px-2 text-left">Address / Destination</th>
+                  <th className="border border-black py-1 px-1.5 w-16 text-center">D.S.</th>
+                  <th className="border border-black py-1 px-1 w-10 text-center">Items</th>
+                  <th className="border border-black py-1 px-2 text-right w-20">Subtotal</th>
+                  <th className="border border-black py-1 px-1.5 text-right w-14">Disc</th>
+                  <th className="border border-black py-1 px-2 text-right w-24">Net Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEstimates.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="border border-black py-3 text-center font-bold text-slate-500">
+                      No invoices recorded for this period.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEstimates.map((est, index) => (
+                    <tr key={est.id || index} className="border-b border-black">
+                      <td className="border border-black py-0.5 px-1 text-center font-bold text-[10px]">{index + 1}</td>
+                      <td className="border border-black py-0.5 px-1.5 text-center font-mono font-black text-[11px]">{est.estimateNumber}</td>
+                      <td className="border border-black py-0.5 px-2 font-bold whitespace-nowrap text-[10px]">{formatDateDDMMYY(est.date)}</td>
+                      <td className="border border-black py-0.5 px-2 font-black text-[11px] text-black">{est.customerName || '—'}</td>
+                      <td className="border border-black py-0.5 px-2 font-medium truncate max-w-[130px] text-[10px]">{est.customerAddress || '—'}</td>
+                      <td className="border border-black py-0.5 px-1.5 text-center font-bold text-[10px]">{est.dpName || '—'}</td>
+                      <td className="border border-black py-0.5 px-1 text-center font-bold text-[10px]">{est.items?.length || 0}</td>
+                      <td className="border border-black py-0.5 px-2 text-right font-bold text-[10.5px] tabular-nums">{shopProfile.currencySymbol}{est.subtotal.toFixed(2)}</td>
+                      <td className="border border-black py-0.5 px-1.5 text-right font-bold text-[10px] tabular-nums">{est.discount > 0 ? `${shopProfile.currencySymbol}${est.discount.toFixed(2)}` : '—'}</td>
+                      <td className="border border-black py-0.5 px-2 text-right font-black text-[11.5px] tabular-nums">{shopProfile.currencySymbol}{est.grandTotal.toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-black font-black bg-slate-100 text-xs">
+                  <td colSpan={7} className="border border-black py-1 px-2 text-right uppercase tracking-wider">
+                    Invoices Grand Total ({filteredEstimates.length} Bills):
+                  </td>
+                  <td className="border border-black py-1 px-2 text-right font-black tabular-nums">
+                    {shopProfile.currencySymbol}{stats.totalGross.toFixed(2)}
+                  </td>
+                  <td className="border border-black py-1 px-1.5 text-right font-black tabular-nums">
+                    {shopProfile.currencySymbol}{stats.totalDiscount.toFixed(2)}
+                  </td>
+                  <td className="border border-black py-1 px-2 text-right font-black text-sm tabular-nums">
+                    {shopProfile.currencySymbol}{stats.totalGrand.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+
+        {/* Printable Signature & Verification Line */}
+        <div className="flex justify-between items-end pt-6 mt-4 border-t border-black text-xs">
           <div>
-            <p className="text-[10px] font-bold text-slate-600">Generated automatically by InvoicePro Offline Billing</p>
-            <p className="text-[9px] text-slate-500">Printed on: {new Date().toLocaleString()}</p>
+            <p className="text-[10px] font-black text-black uppercase tracking-wider">InvoicePro Offline Billing System</p>
+            <p className="text-[9px] text-slate-600 mt-0.5">Report Printed on: {new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
           </div>
           <div className="text-center">
-            <div className="border-t border-black w-44 pt-1 font-black text-xs">
+            <div className="text-[9.5px] font-bold text-black mb-4">
+              For {shopProfile.name}
+            </div>
+            <div className="border-t border-black w-48 pt-0.5 font-black text-[10px] text-black">
               Authorised Signatory / Manager
             </div>
           </div>

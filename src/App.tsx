@@ -1415,7 +1415,7 @@ export const App: React.FC = () => {
             ? 'max-w-md'
             : 'max-w-4xl'
         } p-3 sm:p-5 print:p-0 my-2 flex-1 transition-all ${
-          shopProfile.paperFormat === 'A4_2in1' ? 'print:hidden' : ''
+          shopProfile.paperFormat === 'A4_2in1' || isReportOpen ? 'print:hidden' : ''
         }`}
       >
         <div
@@ -2087,7 +2087,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* A4 2-in-1 Dedicated Print Container (Rendered during Print when format is A4_2in1) */}
-      {shopProfile.paperFormat === 'A4_2in1' && (
+      {shopProfile.paperFormat === 'A4_2in1' && !isReportOpen && (
         <div className="print-only format-A4-2in1-container w-full bg-white text-black p-0 m-0">
           {/* Top: Original Copy */}
           {renderPrintCopy('ORIGINAL')}
