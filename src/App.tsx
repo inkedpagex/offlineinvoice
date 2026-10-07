@@ -14,10 +14,12 @@ import {
   X,
   MapPin,
   TrendingUp,
+  Users,
 } from 'lucide-react';
 import { ShopProfile, ActiveEstimate, EstimateItem, Product, SavedEstimate, Customer } from './types';
 import { ShopSettingsModal } from './components/ShopSettingsModal';
 import { ProductManagementModal } from './components/ProductManagementModal';
+import { CustomerManagementModal } from './components/CustomerManagementModal';
 import { EstimateHistoryModal } from './components/EstimateHistoryModal';
 import { PrintPreviewModal } from './components/PrintPreviewModal';
 import { SalesReportModal } from './components/SalesReportModal';
@@ -162,6 +164,7 @@ export const App: React.FC = () => {
     return defaultCustomers as Customer[];
   });
 
+  const [isCustomersOpen, setIsCustomersOpen] = useState(false);
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [selectedCustomerIndex, setSelectedCustomerIndex] = useState<number>(-1);
   const customerNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -332,6 +335,13 @@ export const App: React.FC = () => {
     setProducts(updatedProducts);
     localStorage.setItem('offline_products_catalog', JSON.stringify(updatedProducts));
     window.electronAPI?.dbSet('offline_products_catalog', updatedProducts);
+  };
+
+  // Sync customers to localStorage and Electron disk
+  const handleSaveCustomers = (updatedCustomers: Customer[]) => {
+    setCustomers(updatedCustomers);
+    localStorage.setItem('offline_customers_catalog', JSON.stringify(updatedCustomers));
+    window.electronAPI?.dbSet('offline_customers_catalog', updatedCustomers);
   };
 
   // Calculations
@@ -1350,6 +1360,19 @@ export const App: React.FC = () => {
               </span>
             </button>
 
+            {/* Customers Button */}
+            <button
+              onClick={() => setIsCustomersOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition-all active:scale-95 shadow-xs cursor-pointer"
+              title="Manage Customers & Parties Directory"
+            >
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden lg:inline">Customers</span>
+              <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {customers.length}
+              </span>
+            </button>
+
             {/* History Button */}
             <button
               onClick={() => setIsHistoryOpen(true)}
@@ -2130,6 +2153,17 @@ export const App: React.FC = () => {
         onSaveProducts={handleSaveProducts}
         currencySymbol={shopProfile.currencySymbol}
         onAddProductToEstimate={handleAddProductFromCatalog}
+      />
+
+      {/* Customer Management Modal (Directory with Add, Edit, Delete & Quick Bill) */}
+      <CustomerManagementModal
+        isOpen={isCustomersOpen}
+        onClose={() => setIsCustomersOpen(false)}
+        customers={customers}
+        onSaveCustomers={handleSaveCustomers}
+        onSelectCustomer={handleSelectCustomer}
+        history={history}
+        shopProfile={shopProfile}
       />
 
       {/* Estimate History Modal */}
