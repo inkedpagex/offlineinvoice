@@ -501,22 +501,22 @@ export const ProductManagementModal: React.FC<Props> = ({
 
         {/* Product Table */}
         <div className="flex-1 overflow-y-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-xs uppercase z-10">
+          <table className="w-full border-collapse">
+            <thead className="sticky top-0 bg-slate-100 border-b border-slate-300 text-slate-800 font-extrabold text-xs sm:text-sm uppercase z-10">
               <tr>
-                <th className="py-2.5 px-3 text-left">#</th>
-                <th className="py-2.5 px-3 text-left">Product Name</th>
-                <th className="py-2.5 px-3 text-right">MRP</th>
-                <th className="py-2.5 px-3 text-right">Piece Rate</th>
-                <th className="py-2.5 px-3 text-right">Gatta / CFC Rate</th>
-                <th className="py-2.5 px-3 text-left">Packaging / Conversion</th>
-                <th className="py-2.5 px-3 text-center w-20">Actions</th>
+                <th className="py-3 px-3 text-left">#</th>
+                <th className="py-3 px-3 text-left">Product Name</th>
+                <th className="py-3 px-3 text-right">MRP</th>
+                <th className="py-3 px-3 text-right">Piece Rate</th>
+                <th className="py-3 px-3 text-right">Gatta / CFC Rate</th>
+                <th className="py-3 px-3 text-left">Packaging / Conversion</th>
+                <th className="py-3 px-3 text-center w-24">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                  <td colSpan={7} className="text-center py-10 text-slate-400 font-semibold text-sm">
                     No products found matching &quot;{searchTerm}&quot;
                   </td>
                 </tr>
@@ -526,40 +526,50 @@ export const ProductManagementModal: React.FC<Props> = ({
                   const displayUnit = p.unit || parsed.unit || 'PAC';
                   const displayCaseCount = p.caseCount || parsed.caseCount;
 
+                  const formattedMrp = p.mrp !== undefined && p.mrp !== null && p.mrp !== ('' as any)
+                    ? `${currencySymbol}${Number(p.mrp).toFixed(2)}`
+                    : '—';
+
+                  const formattedPieceRate = `${currencySymbol}${Number(p.rate || 0).toFixed(2)}`;
+
+                  const formattedCfcRate = p.cfcRate !== undefined && p.cfcRate !== null && p.cfcRate !== ('' as any)
+                    ? `${currencySymbol}${Number(p.cfcRate).toFixed(2)}`
+                    : '—';
+
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-2 px-3 text-slate-400 text-xs font-medium">
+                    <tr key={p.id} className="hover:bg-sky-50/40 transition-colors">
+                      <td className="py-2.5 px-3 text-slate-400 text-xs sm:text-sm font-bold">
                         {index + 1}
                       </td>
-                      <td className="py-2 px-3 font-semibold text-slate-800">
+                      <td className="py-2.5 px-3 font-bold text-slate-900 text-sm sm:text-base">
                         {p.name}
                       </td>
-                      <td className="py-2 px-3 text-right text-slate-500 tabular-nums">
-                        {p.mrp ? `${currencySymbol}${p.mrp}` : '-'}
+                      <td className="py-2.5 px-3 text-right text-slate-600 font-bold tabular-nums text-sm sm:text-base">
+                        {formattedMrp}
                       </td>
-                      <td className="py-2 px-3 text-right font-bold text-sky-700 tabular-nums">
-                        {currencySymbol}{p.rate.toFixed(2)}
-                        <span className="text-[10px] text-slate-500 font-normal ml-0.5">/{displayUnit}</span>
+                      <td className="py-2.5 px-3 text-right font-black text-sky-700 tabular-nums text-sm sm:text-base">
+                        {formattedPieceRate}
+                        <span className="text-[11px] text-slate-500 font-normal ml-0.5">/{displayUnit}</span>
                       </td>
-                      <td className="py-2 px-3 text-right font-bold text-slate-900 tabular-nums">
-                        {p.cfcRate ? (
+                      <td className="py-2.5 px-3 text-right font-black text-slate-900 tabular-nums text-sm sm:text-base">
+                        {formattedCfcRate !== '—' ? (
                           <>
-                            {currencySymbol}{p.cfcRate.toFixed(2)}
-                            <span className="text-[10px] text-slate-500 font-normal ml-0.5">/Gatta</span>
+                            {formattedCfcRate}
+                            <span className="text-[11px] text-slate-500 font-normal ml-0.5">/Gatta</span>
                           </>
-                        ) : '-'}
+                        ) : '—'}
                       </td>
-                      <td className="py-2 px-3 text-slate-600 text-xs">
+                      <td className="py-2.5 px-3 text-slate-700 text-xs sm:text-sm">
                         {displayCaseCount ? (
-                          <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-700">
-                            1 Gatta = <strong className="text-black">{displayCaseCount} {displayUnit}</strong>
+                          <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-xs sm:text-[13px] font-semibold text-slate-800 shadow-2xs">
+                            1 Gatta = <strong className="text-black font-black">{displayCaseCount} {displayUnit}</strong>
                           </span>
                         ) : (
-                          p.packaging || '-'
+                          p.packaging || '—'
                         )}
                       </td>
-                      <td className="py-2 px-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
                           {onAddProductToEstimate && (
                             <button
                               onClick={() => {
@@ -567,7 +577,7 @@ export const ProductManagementModal: React.FC<Props> = ({
                                 setSuccessMsg(`🛒 Added "${p.name}" to current bill!`);
                                 setTimeout(() => setSuccessMsg(null), 2500);
                               }}
-                              className="text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 transition-all active:scale-95 shadow-xs"
+                              className="text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1 transition-all active:scale-95 shadow-xs"
                               title="Add this item directly into current bill"
                             >
                               <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
@@ -576,17 +586,17 @@ export const ProductManagementModal: React.FC<Props> = ({
                           )}
                           <button
                             onClick={() => handleStartEdit(p)}
-                            className="text-slate-400 hover:text-sky-600 p-1.5 rounded hover:bg-sky-50 transition-colors"
+                            className="text-slate-500 hover:text-sky-600 p-1.5 rounded hover:bg-sky-50 transition-colors"
                             title="Edit product"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(p.id)}
                             className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-red-50 transition-colors"
                             title="Delete product"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
